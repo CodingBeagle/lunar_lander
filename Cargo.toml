@@ -1,0 +1,11 @@
+[package]
+name = "lunar_lander"
+version = "0.1.0"
+authors = ["CodingBeagle"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+winapi = { version = "0.3.9", features = ["winuser", "minwindef", "libloaderapi", "windef", "impl-default", "dxgi", "dxgitype", "d3d11", "winerror", "unknwnbase", "guiddef", "dxgiformat"] }
+ultraviolet = {version = "0.7.5", features = ["bytemuck"] } 

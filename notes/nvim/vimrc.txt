@@ -1,0 +1,11 @@
+The "vimrc" file, AKA "init.vim", is a configuration file which Vim executes automatically at startup.
+
+In this file, you can place all the commands you want to be executed at every startup.
+
+In order to figure out the directory of your init.vim, you can type the following command inside Vim:
+:echo stdpath('config')
+
+In order to learn more about the vimrc file, you can type the following command:
+:help vimrc-intro
+
+
