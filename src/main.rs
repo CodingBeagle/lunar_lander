@@ -3,6 +3,7 @@ use std::os::windows::prelude::*;
 
 extern crate winapi;
 
+use ultraviolet::{Vec3, Vec4};
 // winapi related imports
 use winapi::ctypes::*;
 use winapi::{Interface, um::libloaderapi::*};
@@ -18,6 +19,11 @@ use winapi::shared::dxgitype::*;
 // DirectX related imports
 use winapi::um::d3d11::*;
 use winapi::um::d3dcommon::*;
+
+struct Vertex {
+    position: Vec3,
+    color: Vec4
+}
 
 fn main() {
     // TODO: Read up on unsafe block
@@ -177,6 +183,120 @@ fn main() {
             return
         }
 
+        // Now we can release the COM interfaces that we don't need any longer
+        // TODO: See more on COM reference counting here: https://docs.microsoft.com/en-us/cpp/atl/queryinterface?view=msvc-160
+        idxgi_device.as_ref().unwrap().Release();
+        idxgi_adapter.as_ref().unwrap().Release();
+        idxgi_factory.as_ref().unwrap().Release();
+
+        // Creating Render Target View for swap chain backbuffer
+        // We need to bind the back buffer of our swap chain to the Output Merger Stage (so the back buffer can be rendered to by the pipeline).
+        // In order to do this, we need to create a Render Target View, and bind that view to the pipeline.
+        let mut back_buffer_view : *mut ID3D11RenderTargetView = null_mut();
+        let mut back_buffer : *mut ID3D11Texture2D = null_mut();
+
+        // IDXGISwapChain::GetBuffer is used to access a swap chain's back buffers
+        // Since the SwapEffect of the chain is DXGI_SWAP_EFFECT_DISCARD, we only have access to the first buffer, index zero.
+        if FAILED(idxgi_swap_chain.as_ref().unwrap().GetBuffer(0, &ID3D11Texture2D::uuidof(), &mut back_buffer as *mut *mut _ as *mut *mut c_void)) {
+            println!("Failed to get swap chain back buffer!");
+            return
+        }
+
+        // ID3D11Device::CreateRenderTargetView creates a render-target view for accessing resource data.
+        // pResource = A pointer to the resource that represents a render target, in this case our swap-chain backbuffer.
+        // Render Target Views can be used to bind to the Output Merger Stage
+        if FAILED(device_ref.CreateRenderTargetView(back_buffer as *mut ID3D11Resource, null_mut(), &mut back_buffer_view)) {
+            println!("Failed to create a render target view from the swap chain back buffer!");
+            return
+        }
+
+        // We don't need a COM object to the swap-chain back buffer any longer
+        back_buffer.as_ref().unwrap().Release();
+
+        // TODO: Read up on Depth/Stencil buffer
+        // Creation of depth/stencil buffer
+        // A depth/stencil buffer is simply a 2D texture used to store depth information.
+        // It's used by the Output Merger Stage to determine which pixels should be visible, and which shouldn't.
+
+        // In order to create a 2D texture, we fill out a D3D11_TEXTURE2D_DESC struct
+        let mut depth_buffer_texture_description = D3D11_TEXTURE2D_DESC::default();
+
+        // The width and height of the texture in Texels.
+        // It should be the same size as the back buffer we display in our window.
+        depth_buffer_texture_description.Width = 800;
+        depth_buffer_texture_description.Height = 600;
+
+        // The number of MipMap levels in the texture.
+        // We only need 1 mipmap level in our depth buffer.
+        // TODO: Read up on MipMap levels...
+        depth_buffer_texture_description.MipLevels = 1;
+
+        // The number of textures in the texture array.
+        // We only need one texture for our depth buffer.
+        depth_buffer_texture_description.ArraySize = 1;
+
+        // The format of the texture.
+        // DXGI_FORMAT_D24_UNORM_S8_UINT = 32-bit-z-buffer format supporting 24 bits for depth and 8 bits for stencil.
+        depth_buffer_texture_description.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+        // Again, we simply use no MSAA right now, as I'm not checking for the supported quality level of my hardware.
+        depth_buffer_texture_description.SampleDesc.Count = 1;
+        depth_buffer_texture_description.SampleDesc.Quality = 0;
+
+        // Usage describes how the texture should be read from and written to.
+        // D3D11_USAGE_DEFAULT is the most common choice, as it describes a texture which requires Read and Write access by the GPU.
+        depth_buffer_texture_description.Usage = D3D11_USAGE_DEFAULT;
+
+        // BindFlags is used to identify how a resource should be bound to the pipeline.
+        // D3D11_BIND_DEPTH_STENCIL = The texture will be bound as a depth-stencil taret for the output-merger stage.
+        depth_buffer_texture_description.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+        let mut depth_buffer : *mut ID3D11Texture2D = null_mut();
+        let mut depth_buffer_view : *mut ID3D11DepthStencilView = null_mut();
+
+        if FAILED(device_ref.CreateTexture2D(&depth_buffer_texture_description, null_mut(), &mut depth_buffer)) {
+            println!("Failed to create depth buffer!");
+            return
+        }
+
+        if FAILED(device_ref.CreateDepthStencilView(depth_buffer as *mut ID3D11Resource, null_mut(), &mut depth_buffer_view)) {
+            println!("Failed to create depth view!");
+            return
+        }
+
+        // Bind back buffer view and depth buffer view to Output Merger Stage
+        immediate_device_context.as_ref().unwrap().OMSetRenderTargets(1, &back_buffer_view, depth_buffer_view);
+
+        // TODO: Exercise - Enumerate through the available outputs (monitors) for an adapter. Use IDXGIAdapter::EnumOutputs.
+        // TODO: Exercise - Each output has a lit of supported display modes. For each of them, list width, height, refresh rate, pixel format, etc...
+
+        // Create Vertex Buffer and upload it
+        let triangle_vertex_buffer = [
+            Vertex {
+                position: Vec3::new(0.0, 10.0, 0.0),
+                color: Vec4::new(0.5, 0.5, 0.5, 1.0)
+            },
+            Vertex {
+                position: Vec3::new(10.0, -10.0, 0.0),
+                color: Vec4::new(0.5, 0.5, 0.5, 1.0)
+            },
+            Vertex {
+                position: Vec3::new(-10.0, -10.0, 0.0),
+                color: Vec4::new(0.5, 0.5, 0.5, 1.0)
+            }
+        ];
+
+        // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_buffer_desc 
+        // D3D11_BUFFER_DESC is used to describe the buffer we want to upload
+        let vertex_buffer_description = D3D11_BUFFER_DESC {
+            ByteWidth: (mem::size_of::<Vertex>() * 3) as UINT, // Size of the buffer in bytes
+            Usage: D3D11_USAGE_DEFAULT,
+            BindFlags: D3D11_BIND_VERTEX_BUFFER,
+            CPUAccessFlags: 0,
+            MiscFlags: 0,
+            StructureByteStride: 0
+        };
+
         let mut should_quit = false;
         let mut current_message = MSG::default();
 
@@ -250,6 +370,11 @@ fn create_swap_chain_description(main_window: *mut HWND__) -> DXGI_SWAP_CHAIN_DE
     // Creating a full-screen swap-chain with an unsupported display mode will cause the display to go black, preventing the end user from seeing anything.
     // I actually experienced this on my machine when I skipped this property.
     swap_chain_description.Windowed = TRUE;
+
+    // The SwapEffect is used to indicate what to do with the pixels in a display buffer after the PRESENT action has been performed on the swap chain.
+    // DXGI_SWAP_EFFECT_DISCARD simply means that the display driver will select the most efficient presentation technique for the swap chain.
+    // IT also means that the contents of the back buffer is discarded after you call PRESENT.
+    swap_chain_description.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
     swap_chain_description
 }
