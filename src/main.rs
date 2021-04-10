@@ -244,6 +244,13 @@ fn create_swap_chain_description(main_window: *mut HWND__) -> DXGI_SWAP_CHAIN_DE
     // This value CANNOT be null.
     swap_chain_description.OutputWindow = main_window;
 
+    // Set the output to windowed mode. This is a fairly important value.
+    // If the swap-chain is in windowed mode, the front-buffer is the desktop.
+    // If the swap-chain is not in windowed mode, there is a dedicated front buffer.
+    // Creating a full-screen swap-chain with an unsupported display mode will cause the display to go black, preventing the end user from seeing anything.
+    // I actually experienced this on my machine when I skipped this property.
+    swap_chain_description.Windowed = TRUE;
+
     swap_chain_description
 }
 
