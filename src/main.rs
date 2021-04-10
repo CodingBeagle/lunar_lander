@@ -9,6 +9,7 @@ use winapi::{Interface, um::libloaderapi::*};
 use winapi::shared::windef::*;
 use winapi::shared::minwindef::*;
 use winapi::um::winuser::*;
+use winapi::um::unknwnbase::*;
 use winapi::shared::winerror::*;
 use winapi::shared::dxgi::*;
 use winapi::shared::dxgiformat::*;
@@ -156,7 +157,25 @@ fn main() {
             return
         }
 
+        let mut idxgi_adapter : *mut IDXGIAdapter = null_mut();
+        if FAILED(idxgi_device.as_ref().unwrap().GetParent(&IDXGIAdapter::uuidof(), &mut idxgi_adapter as *mut *mut _ as *mut *mut c_void)) {
+            println!("Failed to obtain IDXGIAdapter.");
+            return
+        }
 
+        let mut idxgi_factory : *mut IDXGIFactory = null_mut();
+        if FAILED(idxgi_adapter.as_ref().unwrap().GetParent(&IDXGIFactory::uuidof(), &mut idxgi_factory as *mut *mut _ as *mut *mut c_void)) {
+            println!("Failed to obtain IDXGIFactory.");
+            return
+        }
+
+        // Now that we have obtained the IDXGI factory which was also used to create our device, we can create the swapchain from that factory.
+        let mut idxgi_swap_chain : *mut IDXGISwapChain = null_mut();
+
+        if FAILED(idxgi_factory.as_ref().unwrap().CreateSwapChain(device as *mut IUnknown, &mut swap_chain_description, &mut idxgi_swap_chain)) {
+            println!("Failed to create the swap chain");
+            return
+        }
 
         let mut should_quit = false;
         let mut current_message = MSG::default();
