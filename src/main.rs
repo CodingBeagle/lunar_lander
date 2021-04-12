@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, iter::once, mem, ptr::null_mut};
+use std::{env, ffi::{CString, OsStr}, fs, iter::once, mem, ptr::null_mut};
 use std::os::windows::prelude::*;
 
 extern crate winapi;
@@ -296,6 +296,81 @@ fn main() {
             MiscFlags: 0,
             StructureByteStride: 0
         };
+
+        // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_subresource_data
+        // D3D11_SUBRESOURCE_DATA is used to describe the data we want to initialize a buffer with
+        let buffer_data_description = D3D11_SUBRESOURCE_DATA {
+            pSysMem: triangle_vertex_buffer.as_ptr() as *const c_void,
+            SysMemPitch: 0,
+            SysMemSlicePitch: 0
+        };
+
+        let mut vertex_buffer : *mut ID3D11Buffer = null_mut();
+        if FAILED( device_ref.CreateBuffer(&vertex_buffer_description, &buffer_data_description, &mut vertex_buffer) ) {
+            println!("Failed to create vertex buffer!");
+            return
+        }
+
+        // After we have a vertex buffer, it needs to be found to an INPUT SLOT, to feed the vertices to the pipeline as input.
+        let size_of_vertex_struct = mem::size_of::<Vertex>() as u32;
+        let p_offsets = 0;
+
+        immediate_device_context.as_ref().unwrap().IASetVertexBuffers(
+            0, // Start Slot
+            1, // Number of buffers
+            &vertex_buffer,
+            &size_of_vertex_struct,
+            &p_offsets);
+
+        // TODO: Read up on this whole layout object thing again...
+        let semantic_name_position = CString::new("POSITION").unwrap();
+        let semantic_name_color = CString::new("COLOR").unwrap();
+
+        let input_element_descriptions = [
+            D3D11_INPUT_ELEMENT_DESC {
+                SemanticName: semantic_name_position.as_ptr(),
+                SemanticIndex: 0,
+                Format: DXGI_FORMAT_R32G32B32_FLOAT,
+                InputSlot: 0,
+                AlignedByteOffset: 0,
+                InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
+                InstanceDataStepRate: 0
+            },
+            D3D11_INPUT_ELEMENT_DESC {
+                SemanticName: semantic_name_color.as_ptr(),
+                SemanticIndex: 0,
+                Format: DXGI_FORMAT_R32G32B32A32_FLOAT,
+                InputSlot: 0,
+                AlignedByteOffset: 12,
+                InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
+                InstanceDataStepRate: 0
+            }
+        ];
+
+        // parent() method will return the path without the final component, if there is one (such as a filename).
+        let current_executable_path = env::current_exe().unwrap();
+        let path_to_vertex_shader = current_executable_path.parent().unwrap().join("resources\\shaders\\compiled-vertex-shader.shader");
+
+        let compiled_vertex_shader_code = fs::read(path_to_vertex_shader).unwrap();
+
+        let mut input_layout_object : *mut ID3D11InputLayout = null_mut();
+        if FAILED(device_ref.CreateInputLayout(
+                input_element_descriptions.as_ptr(),
+                2,
+                compiled_vertex_shader_code.as_ptr() as *const c_void,
+                compiled_vertex_shader_code.len(), 
+                &mut input_layout_object)) {
+            println!("Failed to create input layout!");
+            return
+        }
+
+        immediate_device_context.as_ref().unwrap().IASetInputLayout(input_layout_object);
+
+        // We must also tell the IA stage how to assemble the vertices into primitives.
+        // You do this by specifying a "primitive type" through the Primitive Topology Method.
+        immediate_device_context.as_ref().unwrap().IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
 
         let mut should_quit = false;
         let mut current_message = MSG::default();
