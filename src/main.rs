@@ -23,8 +23,9 @@ use winapi::um::d3d11::*;
 use winapi::um::d3dcommon::*;
 
 // Ultraviolet
-use ultraviolet::projection::*;
-use ultraviolet::{Mat4, Vec3, Vec4};
+use ultraviolet::vec::*;
+use ultraviolet::mat::*;
+use ultraviolet::projection::lh_yup::*;
 
 struct Vertex {
     position: Vec3,
