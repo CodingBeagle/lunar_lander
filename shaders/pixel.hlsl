@@ -1,3 +1,5 @@
+// fxc.exe /E PS /T ps_5_0 /Fo "compiled-pixel-shader.shader" ./pixel.hlsl
+
 struct VertexOut
 {
     // In the output structure, ":SV_POSITION" and ":COLOR" are also semantics.
@@ -8,7 +10,7 @@ struct VertexOut
     float4 Color : COLOR;
 };
 
-// Semantics prefixed with "SV" are special, it stands for "System Value".
+// Pixel shader
 float4 PS(float4 posH : SV_POSITION, float4 color : COLOR) : SV_Target
 {
     return color;

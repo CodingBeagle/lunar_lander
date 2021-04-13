@@ -1,9 +1,11 @@
 use std::{env, ffi::{CString, OsStr}, fs, iter::once, mem, ptr::null_mut};
+
+// rust-analyzer has an issue with unresolved import errors for platform specific modules such as std::os
+
 use std::os::windows::prelude::*;
 
 extern crate winapi;
 
-use ultraviolet::{Vec3, Vec4};
 // winapi related imports
 use winapi::ctypes::*;
 use winapi::{Interface, um::libloaderapi::*};
@@ -20,9 +22,17 @@ use winapi::shared::dxgitype::*;
 use winapi::um::d3d11::*;
 use winapi::um::d3dcommon::*;
 
+// Ultraviolet
+use ultraviolet::projection::*;
+use ultraviolet::{Mat4, Vec3, Vec4};
+
 struct Vertex {
     position: Vec3,
     color: Vec4
+}
+
+struct VertexConstantBuffer {
+    worldViewProjection: Mat4
 }
 
 fn main() {
@@ -370,7 +380,123 @@ fn main() {
         // You do this by specifying a "primitive type" through the Primitive Topology Method.
         immediate_device_context.as_ref().unwrap().IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+        // Create an Index Buffer
+        // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-resources-buffers-index-how-to
+        // An Index buffer is simply buffer which contain integer offsets into a vertex buffer. It's used to render primitives more efficiently.
+        // Each offset in the Index Buffer is used to identify a vertex in the vertex buffer.
+        let index_buffer_data = [0, 1, 2];
 
+        let index_buffer_description = D3D11_BUFFER_DESC {
+            ByteWidth: (mem::size_of::<i32>() * 3) as UINT,
+            Usage: D3D11_USAGE_DEFAULT,
+            BindFlags: D3D11_BIND_INDEX_BUFFER,
+            CPUAccessFlags: 0,
+            MiscFlags: 0,
+            StructureByteStride: 0
+        };
+
+        let index_buffer_data_description = D3D11_SUBRESOURCE_DATA {
+            pSysMem: index_buffer_data.as_ptr() as *const c_void,
+            SysMemPitch: 0,
+            SysMemSlicePitch: 0
+        };
+
+        let mut index_buffer : *mut ID3D11Buffer = null_mut();
+        if FAILED(device_ref.CreateBuffer(&index_buffer_description, &index_buffer_data_description, &mut index_buffer)) {
+            println!("Failed to create index buffer!");
+            return
+        }
+
+        immediate_device_context.as_ref().unwrap().IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
+
+        // Create vertex shader and pixel shader
+        let path_to_pixel_shader = current_executable_path.parent().unwrap().join("resources\\shaders\\compiled-pixel-shader.shader");
+        let compiled_pixel_shader_code = fs::read(path_to_pixel_shader).unwrap();
+
+        let mut vertex_shader_instance : *mut ID3D11VertexShader = null_mut();
+        if FAILED(device_ref.CreateVertexShader(compiled_vertex_shader_code.as_ptr() as *const c_void, compiled_vertex_shader_code.len(), null_mut(), &mut vertex_shader_instance)) {
+            println!("Failed to create vertex shader!");
+            return
+        }
+
+        let mut pixel_shader_instance : *mut ID3D11PixelShader = null_mut();
+        if FAILED(device_ref.CreatePixelShader(compiled_pixel_shader_code.as_ptr() as *const c_void, compiled_pixel_shader_code.len(), null_mut(), &mut pixel_shader_instance)) {
+            println!("Failed to create pixel shader!");
+            return
+        }
+
+        // A vertex shader must always be active for the pipeline to execute
+        immediate_device_context.as_ref().unwrap().VSSetShader(vertex_shader_instance, null_mut(), 0);
+        immediate_device_context.as_ref().unwrap().PSSetShader(pixel_shader_instance, null_mut(), 0);
+
+        // Create Rasterizer state
+        // TODO: Definitely read more up on this...
+        // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_rasterizer_desc
+        let mut rasterizer_descriptiona = D3D11_RASTERIZER_DESC::default();
+        rasterizer_descriptiona.FillMode = D3D11_FILL_SOLID;
+        rasterizer_descriptiona.CullMode = D3D11_CULL_NONE;
+        rasterizer_descriptiona.FrontCounterClockwise = TRUE;
+        rasterizer_descriptiona.DepthClipEnable = FALSE;
+
+        let mut rasterizer_state : *mut ID3D11RasterizerState = null_mut();
+        if FAILED(device_ref.CreateRasterizerState(&rasterizer_descriptiona, &mut rasterizer_state)) {
+            println!("Failed to create rasterizer state!");
+            return
+        }
+
+        immediate_device_context.as_ref().unwrap().RSSetState(rasterizer_state);
+
+        // It appears that it is required for a viewport to be bound to the pipeline before the Draw() call succeeds.
+        let viewport = D3D11_VIEWPORT {
+            Height: 600.0,
+            Width: 800.0,
+            MinDepth: 0.0,
+            MaxDepth: 1.0,
+            TopLeftX: 0.0,
+            TopLeftY: 0.0
+        };
+
+        immediate_device_context.as_ref().unwrap().RSSetViewports(1, &viewport);
+
+        // Set shader buffers
+        let fov_in_degrees: f32 = 45.0;
+        let projection_matrix = perspective_infinite_z_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0);
+
+        let eye_position = Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: -50.0
+        };
+
+        let world_view_matrix = VertexConstantBuffer {
+            worldViewProjection: projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y())
+        };
+
+        let vertex_constant_buffer_description = D3D11_BUFFER_DESC {
+            ByteWidth: mem::size_of::<VertexConstantBuffer>() as UINT,
+            // A constant buffer should be DYNAMIC, as it should be accessible by the GPU (read-only) and the CPU (write-only)
+            Usage: D3D11_USAGE_DYNAMIC,
+            // We indicate that the buffer should be a constant buffer
+            BindFlags: D3D11_BIND_CONSTANT_BUFFER,
+            // We need the CPU to have WRITE ACCESS, so that the CPU can change its contents
+            CPUAccessFlags: D3D11_CPU_ACCESS_WRITE,
+            MiscFlags: 0,
+            StructureByteStride: 0
+        };
+
+        let vertex_constant_buffer_init_data = D3D11_SUBRESOURCE_DATA {
+            pSysMem: &world_view_matrix as *const _ as *const c_void,
+            SysMemPitch: 0,
+            SysMemSlicePitch: 0
+        };
+
+        let mut vertex_constant_buffer : *mut ID3D11Buffer = null_mut();
+        if FAILED(device_ref.CreateBuffer(&vertex_constant_buffer_description, &vertex_constant_buffer_init_data, &mut vertex_constant_buffer)) {
+            println!("Failed to create vertex constant buffer!");
+            return
+        }
+
+        immediate_device_context.as_ref().unwrap().VSSetConstantBuffers(0, 1, &vertex_constant_buffer);
 
         let mut should_quit = false;
         let mut current_message = MSG::default();
@@ -387,6 +513,17 @@ fn main() {
                 DispatchMessageW(&current_message);
             } else {
                 // RENDER
+
+                // Triangle will NOT render unless both ClearRenderTargetView and ClearDpethStencilView is called!
+                let clear_color = Vec4::new(0.45, 0.6, 0.95, 1.0);
+                immediate_device_context.as_ref().unwrap().ClearRenderTargetView(back_buffer_view, &clear_color.as_array());
+                immediate_device_context.as_ref().unwrap().ClearDepthStencilView(depth_buffer_view, D3D11_CLEAR_DEPTH, 1.0, 0);
+
+                immediate_device_context.as_ref().unwrap().DrawIndexed(3, 0, 0);
+
+                if FAILED(idxgi_swap_chain.as_ref().unwrap().Present(1, 0)) {
+                    println!("Failed to present!");
+                }
             }
         }
     }
@@ -395,7 +532,7 @@ fn main() {
 fn create_swap_chain_description(main_window: *mut HWND__) -> DXGI_SWAP_CHAIN_DESC {
     let mut swap_chain_description = DXGI_SWAP_CHAIN_DESC::default();
 
-    // DXGI_MODE_DESC width and height is the resolution of the output window
+    
     swap_chain_description.BufferDesc.Width = 800;
     swap_chain_description.BufferDesc.Height = 600;
 
