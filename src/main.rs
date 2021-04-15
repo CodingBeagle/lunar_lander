@@ -27,6 +27,10 @@ use ultraviolet::vec::*;
 use ultraviolet::mat::*;
 use ultraviolet::projection::lh_yup::*;
 
+// Own modules
+pub mod obj_loader;
+use crate::obj_loader::*;
+
 struct Vertex {
     position: Vec3,
     color: Vec4
@@ -282,6 +286,8 @@ fn main() {
         // TODO: Exercise - Each output has a lit of supported display modes. For each of them, list width, height, refresh rate, pixel format, etc...
 
         // Create Vertex Buffer and upload it
+        let loaded_model = obj_loader::load_obj();
+
         let triangle_vertex_buffer = [
             Vertex {
                 position: Vec3::new(0.0, 10.0, 0.0),

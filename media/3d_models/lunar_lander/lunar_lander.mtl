@@ -1,0 +1,156 @@
+# Blender MTL File: 'None'
+# Material Count: 13
+
+newmtl Material
+Ns 323.999994
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl WindowMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\WindowMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\WindowMat_baseColor.png
+
+newmtl capsuleMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\capsuleMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\capsuleMat_baseColor.png
+
+newmtl controlThrusterBlockMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\controlThrusterBlockMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\controlThrusterBlockMat_baseColor.png
+
+newmtl control_thrusterMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\control_thrusterMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\control_thrusterMat_baseColor.png
+
+newmtl descent_engineMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\descent_engineMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\descent_engineMat_baseColor.png
+
+newmtl descent_stageMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\descent_stageMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\descent_stageMat_baseColor.png
+
+newmtl fuel_tankMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\fuel_tankMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\fuel_tankMat_baseColor.png
+
+newmtl ladderMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\ladderMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\ladderMat_baseColor.png
+
+newmtl lander_feetMat1
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\lander_feetMat1_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\lander_feetMat1_baseColor.png
+
+newmtl lander_legsMat1
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\lander_legsMat1_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\lander_legsMat1_baseColor.png
+
+newmtl leg_porchMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\leg_porchMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\leg_porchMat_baseColor.png
+
+newmtl thruster_strutMat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\thruster_strutMat_normal.png
+map_Kd C:\\Users\\Kasper\\Downloads\\lander_model\\textures\\thruster_strutMat_baseColor.png

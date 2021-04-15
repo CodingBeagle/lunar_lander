@@ -24,3 +24,10 @@ Write-Host "**** COPYING SHADERS TO OUTPUT DIR ****"
 Write-Host ""
 
 Copy-Item -Path "${build_script_directory}\shaders" -Recurse -Destination "${build_script_directory}\target\debug\resources" -Force
+
+# Copy Media
+Write-Host ""
+Write-Host "**** COPYING MEDIA TO OUTPUT DIR ****"
+Write-Host ""
+
+Copy-Item -Path "${build_script_directory}\media" -Recurse -Destination "${build_script_directory}\target\debug\resources" -Force
