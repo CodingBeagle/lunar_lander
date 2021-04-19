@@ -1,4 +1,4 @@
-use std::{env, ffi::{CString, OsStr}, fs, iter::once, mem, ptr::null_mut};
+use std::{env, ffi::{CString, OsStr}, fs, iter::once, mem, path::PathBuf, ptr::null_mut};
 
 // rust-analyzer has an issue with unresolved import errors for platform specific modules such as std::os
 
@@ -29,7 +29,6 @@ use ultraviolet::projection::lh_yup::*;
 
 // Own modules
 pub mod obj_loader;
-use crate::obj_loader::*;
 
 struct Vertex {
     position: Vec3,
@@ -286,27 +285,29 @@ fn main() {
         // TODO: Exercise - Each output has a lit of supported display modes. For each of them, list width, height, refresh rate, pixel format, etc...
 
         // Create Vertex Buffer and upload it
-        let loaded_model = obj_loader::load_obj();
+        // let loaded_model = obj_loader::load_obj();
+        let current_executable_path = env::current_exe().unwrap();
+        let path_to_cone_model = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\sphere\\red_sphere.obj");
 
-        let triangle_vertex_buffer = [
-            Vertex {
-                position: Vec3::new(0.0, 10.0, 0.0),
+        let loaded_model_data = obj_loader::load_obj(path_to_cone_model);
+
+        let mut triangle_vertex_buffer : Vec<Vertex> = Vec::new();
+
+        if loaded_model_data.vertices.len() % 3 != 0 {
+            panic!("The amount of vertices is not divisible by 3!");
+        }
+
+        for n in (0..loaded_model_data.vertices.len()).step_by(3) {
+            triangle_vertex_buffer.push(Vertex {
+                position: Vec3::new(loaded_model_data.vertices[n], loaded_model_data.vertices[n+1], loaded_model_data.vertices[n+2]),
                 color: Vec4::new(0.5, 0.5, 0.5, 1.0)
-            },
-            Vertex {
-                position: Vec3::new(10.0, -10.0, 0.0),
-                color: Vec4::new(0.5, 0.5, 0.5, 1.0)
-            },
-            Vertex {
-                position: Vec3::new(-10.0, -10.0, 0.0),
-                color: Vec4::new(0.5, 0.5, 0.5, 1.0)
-            }
-        ];
+            });
+        }
 
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_buffer_desc 
         // D3D11_BUFFER_DESC is used to describe the buffer we want to upload
         let vertex_buffer_description = D3D11_BUFFER_DESC {
-            ByteWidth: (mem::size_of::<Vertex>() * 3) as UINT, // Size of the buffer in bytes
+            ByteWidth: (mem::size_of::<Vertex>() * triangle_vertex_buffer.len()) as UINT, // Size of the buffer in bytes
             Usage: D3D11_USAGE_DEFAULT,
             BindFlags: D3D11_BIND_VERTEX_BUFFER,
             CPUAccessFlags: 0,
@@ -391,10 +392,10 @@ fn main() {
         // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-resources-buffers-index-how-to
         // An Index buffer is simply buffer which contain integer offsets into a vertex buffer. It's used to render primitives more efficiently.
         // Each offset in the Index Buffer is used to identify a vertex in the vertex buffer.
-        let index_buffer_data = [0, 1, 2];
+        let index_buffer_data = loaded_model_data.indices;
 
         let index_buffer_description = D3D11_BUFFER_DESC {
-            ByteWidth: (mem::size_of::<i32>() * 3) as UINT,
+            ByteWidth: (mem::size_of::<i32>() * index_buffer_data.len()) as UINT,
             Usage: D3D11_USAGE_DEFAULT,
             BindFlags: D3D11_BIND_INDEX_BUFFER,
             CPUAccessFlags: 0,
@@ -449,30 +450,30 @@ fn main() {
         if FAILED(device_ref.CreateRasterizerState(&rasterizer_descriptiona, &mut rasterizer_state)) {
             println!("Failed to create rasterizer state!");
             return
-        }
+    }
 
-        immediate_device_context.as_ref().unwrap().RSSetState(rasterizer_state);
+    immediate_device_context.as_ref().unwrap().RSSetState(rasterizer_state);
 
-        // It appears that it is required for a viewport to be bound to the pipeline before the Draw() call succeeds.
-        let viewport = D3D11_VIEWPORT {
-            Height: 600.0,
-            Width: 800.0,
-            MinDepth: 0.0,
-            MaxDepth: 1.0,
-            TopLeftX: 0.0,
-            TopLeftY: 0.0
-        };
+    // It appears that it is required for a viewport to be bound to the pipeline before the Draw() call succeeds.
+    let viewport = D3D11_VIEWPORT {
+        Height: 600.0,
+        Width: 800.0,
+        MinDepth: 0.0,
+        MaxDepth: 1.0,
+        TopLeftX: 0.0,
+        TopLeftY: 0.0
+    };
 
-        immediate_device_context.as_ref().unwrap().RSSetViewports(1, &viewport);
+    immediate_device_context.as_ref().unwrap().RSSetViewports(1, &viewport);
 
-        // Set shader buffers
-        let fov_in_degrees: f32 = 45.0;
-        let projection_matrix = perspective_infinite_z_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0);
+    // Set shader buffers
+    let fov_in_degrees: f32 = 45.0;
+    let projection_matrix = perspective_infinite_z_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0);
 
-        let eye_position = Vec3 {
-            x: 0.0,
-            y: 0.0,
-            z: -50.0
+    let eye_position = Vec3 {
+        x: 0.0,
+        y: 0.0,
+        z: -50.0
         };
 
         let world_view_matrix = VertexConstantBuffer {
@@ -526,7 +527,7 @@ fn main() {
                 immediate_device_context.as_ref().unwrap().ClearRenderTargetView(back_buffer_view, &clear_color.as_array());
                 immediate_device_context.as_ref().unwrap().ClearDepthStencilView(depth_buffer_view, D3D11_CLEAR_DEPTH, 1.0, 0);
 
-                immediate_device_context.as_ref().unwrap().DrawIndexed(3, 0, 0);
+                immediate_device_context.as_ref().unwrap().DrawIndexed(index_buffer_data.len() as UINT, 0, 0);
 
                 if FAILED(idxgi_swap_chain.as_ref().unwrap().Present(1, 0)) {
                     println!("Failed to present!");
