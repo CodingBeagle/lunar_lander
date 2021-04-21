@@ -30,11 +30,13 @@ use ultraviolet::projection::lh_yup::*;
 // Own modules
 pub mod obj_loader;
 
+#[repr(C)]
 struct Vertex {
     position: Vec3,
     color: Vec4
 }
 
+#[repr(C)]
 struct VertexConstantBuffer {
     worldViewProjection: Mat4
 }
@@ -287,7 +289,7 @@ fn main() {
         // Create Vertex Buffer and upload it
         // let loaded_model = obj_loader::load_obj();
         let current_executable_path = env::current_exe().unwrap();
-        let path_to_cone_model = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\sphere\\red_sphere.obj");
+        let path_to_cone_model = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\cone\\green_cone.obj");
 
         let loaded_model_data = obj_loader::load_obj(path_to_cone_model);
 
@@ -444,6 +446,8 @@ fn main() {
         rasterizer_descriptiona.FillMode = D3D11_FILL_SOLID;
         rasterizer_descriptiona.CullMode = D3D11_CULL_NONE;
         rasterizer_descriptiona.FrontCounterClockwise = TRUE;
+
+        // TODO: Setting this to TRUE makes everything invicible... why?
         rasterizer_descriptiona.DepthClipEnable = FALSE;
 
         let mut rasterizer_state : *mut ID3D11RasterizerState = null_mut();
@@ -473,12 +477,19 @@ fn main() {
     let eye_position = Vec3 {
         x: 0.0,
         y: 0.0,
-        z: -50.0
+        z: 5.0
         };
 
-        let world_view_matrix = VertexConstantBuffer {
+        let mut world_view_matrix = VertexConstantBuffer {
             worldViewProjection: projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y())
         };
+
+        // Ultraviolet stores matrices in row-major order.
+        // This means that each element of a row is stored consecutively next to each other.
+        // However, HLSL uses column-major by default. Meaning, each element of a column will be stored consecutively next to each other.
+        // Therefore, I need to tranpose the matrix before passing it to the vertex shader.
+        // https://en.wikipedia.org/wiki/Row-_and_column-major_order
+        world_view_matrix.worldViewProjection.transpose();
 
         let vertex_constant_buffer_description = D3D11_BUFFER_DESC {
             ByteWidth: mem::size_of::<VertexConstantBuffer>() as UINT,
