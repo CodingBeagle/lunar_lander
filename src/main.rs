@@ -30,6 +30,14 @@ use ultraviolet::projection::lh_yup::*;
 // Own modules
 pub mod obj_loader;
 
+// Std
+use std::collections::HashMap;
+
+// num
+extern crate num;
+#[macro_use]
+extern crate num_derive;
+
 #[repr(C)]
 struct Vertex {
     position: Vec3,
@@ -40,6 +48,42 @@ struct Vertex {
 struct VertexConstantBuffer {
     worldViewProjection: Mat4
 }
+
+// TODO: Hot damn... really need to read up on all these fancy traits!
+#[derive(Debug)]
+#[derive(FromPrimitive)]
+#[derive(Eq)]
+#[derive(PartialEq)]
+#[derive(Hash)]
+enum KeyType {
+    W = 0x57,
+    S = 0x53,
+    A = 0x41,
+    D = 0x44
+}
+
+// Abstraction for winapi Window
+#[derive(Default)]
+struct Window {
+    is_key_pressed: HashMap<KeyType, bool>
+}
+
+impl Window {
+    fn is_key_pressed(&self, key: KeyType) -> bool {
+        match self.is_key_pressed.get(&key) {
+            Some(ispressed) => *ispressed,
+            None => false
+        }
+    }
+
+    fn proc(&mut self, keytype: KeyType, is_pressed: bool) {
+        let ispressed = self.is_key_pressed.entry(keytype).or_insert(is_pressed);
+        *ispressed = is_pressed;
+
+    }
+}
+
+
 
 fn main() {
     // TODO: Read up on unsafe block
@@ -88,6 +132,12 @@ fn main() {
         }
 
         ShowWindow(main_window, SW_SHOW);
+
+        let window_helper = Window::default();
+
+        // Set window user data
+        // TODO: Need to read up on this cast magic...
+        SetWindowLongPtrA(main_window, GWLP_USERDATA, &window_helper as *const _ as isize);
 
         // Initializing DirectX starts with creating an ID3D11Device and an ID3D11DeviceContext.
         // These are the two primary interfaces of DirectX 11, helping us to interface with the
@@ -289,7 +339,7 @@ fn main() {
         // Create Vertex Buffer and upload it
         // let loaded_model = obj_loader::load_obj();
         let current_executable_path = env::current_exe().unwrap();
-        let path_to_cone_model = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\cone\\green_cone.obj");
+        let path_to_cone_model = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\lunar_lander\\lunar_lander.obj");
 
         let loaded_model_data = obj_loader::load_obj(path_to_cone_model);
 
@@ -443,7 +493,7 @@ fn main() {
         // TODO: Definitely read more up on this...
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_rasterizer_desc
         let mut rasterizer_descriptiona = D3D11_RASTERIZER_DESC::default();
-        rasterizer_descriptiona.FillMode = D3D11_FILL_SOLID;
+        rasterizer_descriptiona.FillMode = D3D11_FILL_WIREFRAME;
         rasterizer_descriptiona.CullMode = D3D11_CULL_NONE;
         rasterizer_descriptiona.FrontCounterClockwise = TRUE;
 
@@ -476,8 +526,8 @@ fn main() {
 
     let eye_position = Vec3 {
         x: 0.0,
-        y: 0.0,
-        z: 5.0
+        y: 8.0,
+        z: 15.0
         };
 
         let mut world_view_matrix = VertexConstantBuffer {
@@ -531,6 +581,11 @@ fn main() {
                 TranslateMessage(&current_message);
                 DispatchMessageW(&current_message);
             } else {
+                // UPDATE
+                if window_helper.is_key_pressed(KeyType::W) {
+                    println!("Hot damn I'm pressing W!!!");
+                }
+
                 // RENDER
 
                 // Triangle will NOT render unless both ClearRenderTargetView and ClearDpethStencilView is called!
@@ -550,7 +605,6 @@ fn main() {
 
 fn create_swap_chain_description(main_window: *mut HWND__) -> DXGI_SWAP_CHAIN_DESC {
     let mut swap_chain_description = DXGI_SWAP_CHAIN_DESC::default();
-
     
     swap_chain_description.BufferDesc.Width = 800;
     swap_chain_description.BufferDesc.Height = 600;
@@ -611,12 +665,34 @@ fn create_swap_chain_description(main_window: *mut HWND__) -> DXGI_SWAP_CHAIN_DE
 }
 
 // TODO: What does "extern 'system'" mean?
+// About Keyboard Input Model: https://docs.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input
 unsafe extern "system" fn window_proc(hwnd: HWND, u_msg: UINT, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    let window_helper = GetWindowLongPtrA(hwnd, GWLP_USERDATA) as *mut Window;
+
     // TODO: Read more up on the match statement... cuz this thing powerful
     match u_msg {
         WM_QUIT | WM_DESTROY | WM_CLOSE  => {
             PostQuitMessage(0);
             0
+        },
+        // Keydown Documentation: https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-keydown
+        WM_KEYDOWN | WM_KEYUP => {
+            let key_press : Option<KeyType> = num::FromPrimitive::from_usize(w_param);
+
+            let is_key_pressed = match u_msg {
+                WM_KEYDOWN => true,
+                _ => false
+            };
+
+            if key_press.is_some() {
+                window_helper.as_mut().unwrap().proc(key_press.unwrap(), is_key_pressed);
+            }
+
+            0 // An application should return 0 if it successfully processed the message
+        },
+        // Keyup documentation: https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-keyup
+        WM_KEYUP => {
+            0 // An application should return 0 if it successfully processed the message
         },
         // TODO: Read up on general Windows message processing theory
         _ => DefWindowProcW(hwnd, u_msg, w_param, l_param)
