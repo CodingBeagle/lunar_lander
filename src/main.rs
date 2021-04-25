@@ -44,6 +44,7 @@ struct Vertex {
     color: Vec4
 }
 
+#[derive(Debug)]
 #[repr(C)]
 struct VertexConstantBuffer {
     worldViewProjection: Mat4
@@ -524,15 +525,15 @@ fn main() {
     let fov_in_degrees: f32 = 45.0;
     let projection_matrix = perspective_infinite_z_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0);
 
-    let eye_position = Vec3 {
+    let mut eye_position = Vec3 {
         x: 0.0,
         y: 8.0,
         z: 15.0
-        };
+     };
 
-        let mut world_view_matrix = VertexConstantBuffer {
-            worldViewProjection: projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y())
-        };
+     let mut world_view_matrix = VertexConstantBuffer {
+        worldViewProjection: projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y())
+     };
 
         // Ultraviolet stores matrices in row-major order.
         // This means that each element of a row is stored consecutively next to each other.
@@ -544,6 +545,8 @@ fn main() {
         let vertex_constant_buffer_description = D3D11_BUFFER_DESC {
             ByteWidth: mem::size_of::<VertexConstantBuffer>() as UINT,
             // A constant buffer should be DYNAMIC, as it should be accessible by the GPU (read-only) and the CPU (write-only)
+            // Resources with D3D11_USAGE_DYNAMIC cannot be used as destination resources for the UpdateSubresource method.
+            // So, if you want to change the content of a D3D11_USAGE_DYNAMIC buffer, use the Map method instead.
             Usage: D3D11_USAGE_DYNAMIC,
             // We indicate that the buffer should be a constant buffer
             BindFlags: D3D11_BIND_CONSTANT_BUFFER,
@@ -583,8 +586,30 @@ fn main() {
             } else {
                 // UPDATE
                 if window_helper.is_key_pressed(KeyType::W) {
-                    println!("Hot damn I'm pressing W!!!");
+                    eye_position.y += 1.0;
                 }
+
+                if window_helper.is_key_pressed(KeyType::S) {
+                    eye_position.y -= 1.0;
+                }
+
+                world_view_matrix.worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
+
+                let mut mapped_resource : D3D11_MAPPED_SUBRESOURCE = D3D11_MAPPED_SUBRESOURCE::default();
+
+                if FAILED(immediate_device_context.as_ref().unwrap().Map(vertex_constant_buffer as *mut ID3D11Resource, 0, D3D11_MAP_WRITE_DISCARD, 0, &mut mapped_resource)) {
+                    panic!("Failed to retrieve vertex constant buffer subresource!");
+                };
+
+                let lol : *mut VertexConstantBuffer = mapped_resource.pData as *mut VertexConstantBuffer;
+
+                (*lol).worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
+                (*lol).worldViewProjection.transpose();
+
+                immediate_device_context.as_ref().unwrap().Unmap(vertex_constant_buffer as *mut ID3D11Resource, 0);
+
+                // immediate_device_context.as_ref().unwrap().UpdateSubresource(vertex_constant_buffer as *mut ID3D11Resource, 0, null_mut(), &world_view_matrix as *const _ as *const c_void, 0, 0);
+                // immediate_device_context.as_ref().unwrap().VSSetConstantBuffers(0, 1, &vertex_constant_buffer);
 
                 // RENDER
 
