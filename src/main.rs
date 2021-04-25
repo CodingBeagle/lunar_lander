@@ -547,6 +547,7 @@ fn main() {
             // A constant buffer should be DYNAMIC, as it should be accessible by the GPU (read-only) and the CPU (write-only)
             // Resources with D3D11_USAGE_DYNAMIC cannot be used as destination resources for the UpdateSubresource method.
             // So, if you want to change the content of a D3D11_USAGE_DYNAMIC buffer, use the Map method instead.
+            // D3D11_USAGE_DYNAMIC is a good choice for a buffer that is updated once per CPU cycle, as is our constant buffer with the world matrix.
             Usage: D3D11_USAGE_DYNAMIC,
             // We indicate that the buffer should be a constant buffer
             BindFlags: D3D11_BIND_CONSTANT_BUFFER,
@@ -595,8 +596,14 @@ fn main() {
 
                 world_view_matrix.worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
 
+                // Update vertex constant buffer for world matrix
                 let mut mapped_resource : D3D11_MAPPED_SUBRESOURCE = D3D11_MAPPED_SUBRESOURCE::default();
 
+                // Buffers which are dynamic (D3D11_USAGE_DYNAMIC) cannot have their content updated by the UpdateSubresource method.
+                // Instead, we have to use the "Map" method.
+                // This method retrives a pointer to the data contained in a subresource (such as our constant buffer), and we can then use that pointer
+                // To update its data.
+                // When you call the Map method, the GPU will have its access to that subresource denied.
                 if FAILED(immediate_device_context.as_ref().unwrap().Map(vertex_constant_buffer as *mut ID3D11Resource, 0, D3D11_MAP_WRITE_DISCARD, 0, &mut mapped_resource)) {
                     panic!("Failed to retrieve vertex constant buffer subresource!");
                 };
@@ -606,10 +613,9 @@ fn main() {
                 (*lol).worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
                 (*lol).worldViewProjection.transpose();
 
+                // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
+                // and reenable the GPU's access to that resource
                 immediate_device_context.as_ref().unwrap().Unmap(vertex_constant_buffer as *mut ID3D11Resource, 0);
-
-                // immediate_device_context.as_ref().unwrap().UpdateSubresource(vertex_constant_buffer as *mut ID3D11Resource, 0, null_mut(), &world_view_matrix as *const _ as *const c_void, 0, 0);
-                // immediate_device_context.as_ref().unwrap().VSSetConstantBuffers(0, 1, &vertex_constant_buffer);
 
                 // RENDER
 

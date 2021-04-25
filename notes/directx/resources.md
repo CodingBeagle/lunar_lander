@@ -23,3 +23,11 @@ Direct3D has several different types of resources:
 ### Constant Buffer
 
 A constant buffer allows you to supply shader constants data to the pipeline.
+
+## Resource Usage
+
+https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_usage
+
+You have to indicate what a buffer should be used for, in terms of whether it should be accessible by the CPU and GPU.
+
+How to use dynamic resources: https://docs.microsoft.com/en-us/windows/win32/direct3d11/how-to--use-dynamic-resources
