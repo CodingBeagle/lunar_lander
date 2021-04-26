@@ -17,6 +17,7 @@ use winapi::shared::winerror::*;
 use winapi::shared::dxgi::*;
 use winapi::shared::dxgiformat::*;
 use winapi::shared::dxgitype::*;
+use winapi::shared::windowsx::*;
 
 // DirectX related imports
 use winapi::um::d3d11::*;
@@ -63,10 +64,32 @@ enum KeyType {
     D = 0x44
 }
 
+#[derive(Debug)]
+#[derive(Eq)]
+#[derive(PartialEq)]
+#[derive(Hash)]
+#[derive(Copy, Clone)]
+enum MouseKey {
+    Left,
+    Right,
+    Middle
+}
+
+#[derive(Debug)]
+#[derive(Copy, Clone)]
+#[derive(PartialEq)]
+enum KeyState {
+    Up,
+    Down
+}
+
 // Abstraction for winapi Window
 #[derive(Default)]
 struct Window {
-    is_key_pressed: HashMap<KeyType, bool>
+    is_key_pressed: HashMap<KeyType, bool>,
+    current_mouse_key_state: HashMap<MouseKey, KeyState>,
+    previous_mouse_key_state: HashMap<MouseKey, KeyState>,
+    mouse_coords: Vec2
 }
 
 impl Window {
@@ -81,6 +104,42 @@ impl Window {
         let ispressed = self.is_key_pressed.entry(keytype).or_insert(is_pressed);
         *ispressed = is_pressed;
 
+    }
+
+    fn update_mouse_position(&mut self, x: i32, y: i32) {
+        self.mouse_coords.x = x as f32;
+        self.mouse_coords.y = y as f32;
+    }
+
+    fn is_mouse_down(&self, mouse_key: MouseKey) -> bool {
+        match self.current_mouse_key_state.get(&mouse_key) {
+            Some(state) => *state == KeyState::Down,
+            None => false
+        }
+    }
+
+    fn was_mouse_pressed(&self, mouse_key: MouseKey) -> bool {
+        let current_key_state = match self.current_mouse_key_state.get(&mouse_key) {
+            Some(state) => *state,
+            None => KeyState::Up
+        };
+
+        let previous_key_state = match self.previous_mouse_key_state.get(&mouse_key) {
+            Some(state) => *state,
+            None => KeyState::Up
+        };
+
+        current_key_state == KeyState::Down && previous_key_state == KeyState::Up 
+    }
+
+    fn update_mouse_key_state(&mut self, mouse_key: MouseKey, key_state: KeyState) {
+        let state = self.current_mouse_key_state.entry(mouse_key).or_insert(key_state);
+        *state = key_state;
+    }
+
+    fn update(&mut self) {
+        // TODO: clone() actually seems to work... but gotta read up on the technicalities of clone vs copy
+        self.previous_mouse_key_state = self.current_mouse_key_state.clone();
     }
 }
 
@@ -134,7 +193,7 @@ fn main() {
 
         ShowWindow(main_window, SW_SHOW);
 
-        let window_helper = Window::default();
+        let mut window_helper = Window::default();
 
         // Set window user data
         // TODO: Need to read up on this cast magic...
@@ -594,6 +653,14 @@ fn main() {
                     eye_position.y -= 1.0;
                 }
 
+                if window_helper.was_mouse_pressed(MouseKey::Left) {
+                    println!("Mouse was pressed!");
+                }
+
+                if window_helper.is_mouse_down(MouseKey::Left) {
+                    println!("Mouse is down!!");
+                }
+
                 world_view_matrix.worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
 
                 // Update vertex constant buffer for world matrix
@@ -616,6 +683,8 @@ fn main() {
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
                 // and reenable the GPU's access to that resource
                 immediate_device_context.as_ref().unwrap().Unmap(vertex_constant_buffer as *mut ID3D11Resource, 0);
+
+                window_helper.update();
 
                 // RENDER
 
@@ -721,9 +790,22 @@ unsafe extern "system" fn window_proc(hwnd: HWND, u_msg: UINT, w_param: WPARAM, 
 
             0 // An application should return 0 if it successfully processed the message
         },
-        // Keyup documentation: https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-keyup
-        WM_KEYUP => {
-            0 // An application should return 0 if it successfully processed the message
+        // Documentation for MOUSE events: https://docs.microsoft.com/en-us/windows/win32/inputdev/about-mouse-input
+        WM_MOUSEMOVE => {
+            let x_pos : i32 = GET_X_LPARAM(l_param);
+            let y_pos : i32 = GET_Y_LPARAM(l_param);
+
+            window_helper.as_mut().unwrap().update_mouse_position(x_pos, y_pos);
+
+            0
+        },
+        WM_LBUTTONDOWN => {
+            window_helper.as_mut().unwrap().update_mouse_key_state(MouseKey::Left, KeyState::Down);
+            0
+        },
+        WM_LBUTTONUP => {
+            window_helper.as_mut().unwrap().update_mouse_key_state(MouseKey::Left, KeyState::Up);
+            0
         },
         // TODO: Read up on general Windows message processing theory
         _ => DefWindowProcW(hwnd, u_msg, w_param, l_param)
