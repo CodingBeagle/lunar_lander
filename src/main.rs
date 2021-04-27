@@ -86,7 +86,8 @@ enum KeyState {
 // Abstraction for winapi Window
 #[derive(Default)]
 struct Window {
-    is_key_pressed: HashMap<KeyType, bool>,
+    current_keyboard_state: HashMap<KeyType, bool>,
+    previous_keyboard_state: HashMap<KeyType, bool>,
     current_mouse_key_state: HashMap<MouseKey, KeyState>,
     previous_mouse_key_state: HashMap<MouseKey, KeyState>,
     mouse_coords: Vec2
@@ -94,16 +95,15 @@ struct Window {
 
 impl Window {
     fn is_key_pressed(&self, key: KeyType) -> bool {
-        match self.is_key_pressed.get(&key) {
+        match self.current_keyboard_state.get(&key) {
             Some(ispressed) => *ispressed,
             None => false
         }
     }
 
     fn proc(&mut self, keytype: KeyType, is_pressed: bool) {
-        let ispressed = self.is_key_pressed.entry(keytype).or_insert(is_pressed);
+        let ispressed = self.current_keyboard_state.entry(keytype).or_insert(is_pressed);
         *ispressed = is_pressed;
-
     }
 
     fn update_mouse_position(&mut self, x: i32, y: i32) {
@@ -132,6 +132,20 @@ impl Window {
         current_key_state == KeyState::Down && previous_key_state == KeyState::Up 
     }
 
+    fn was_key_pressed(&self, key: KeyType) -> bool {
+        let is_currently_pressed = match self.current_keyboard_state.get(&key) {
+            Some(state) => *state,
+            None => false
+        };
+
+        let was_previously_pressed = match self.previous_keyboard_state.get(&key) {
+            Some(state) => *state,
+            None => false
+        };
+
+        is_currently_pressed == true && was_previously_pressed == false
+    }
+
     fn update_mouse_key_state(&mut self, mouse_key: MouseKey, key_state: KeyState) {
         let state = self.current_mouse_key_state.entry(mouse_key).or_insert(key_state);
         *state = key_state;
@@ -142,8 +156,6 @@ impl Window {
         self.previous_mouse_key_state = self.current_mouse_key_state.clone();
     }
 }
-
-
 
 fn main() {
     // TODO: Read up on unsafe block
