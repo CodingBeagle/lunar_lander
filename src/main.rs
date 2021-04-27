@@ -598,12 +598,19 @@ fn main() {
 
     let mut eye_position = Vec3 {
         x: 0.0,
-        y: 8.0,
+        y: 5.0,
         z: 15.0
      };
 
+    // Create view rotation matrix (inverse of desired camera orientation)
+
+
+    // Create view translation matrix (inverse of eye position)
+    eye_position *= 1.0;
+    let camera_postion = Mat4::identity().translated(&eye_position);
+
      let mut world_view_matrix = VertexConstantBuffer {
-        worldViewProjection: projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y())
+        worldViewProjection: projection_matrix * camera_postion
      };
 
         // Ultraviolet stores matrices in row-major order.
@@ -645,6 +652,14 @@ fn main() {
         let mut should_quit = false;
         let mut current_message = MSG::default();
 
+        let mut cam_x = 0.0;
+        let mut cam_y = 0.0;
+        let mut cam_z = -15.0;
+
+        let mut cam_rot_x = 0.0;
+        let mut cam_rot_y = 0.0;
+        let mut cam_rot_z = 0.0;
+
         while !should_quit {
             // PeekMessage will retrieve messages associated with the main window.
             // By specifying PM_REMOVE, we remove the message from the queue for processing.
@@ -673,6 +688,9 @@ fn main() {
                     println!("Mouse is down!!");
                 }
 
+                // cam_rot_y += 0.01;
+                // cam_rot_x = -10.0;
+
                 world_view_matrix.worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
 
                 // Update vertex constant buffer for world matrix
@@ -688,8 +706,20 @@ fn main() {
                 };
 
                 let lol : *mut VertexConstantBuffer = mapped_resource.pData as *mut VertexConstantBuffer;
+                let mut eye_position = Vec3 {
+                    x: cam_x,
+                    y: cam_y,
+                    z: cam_z
+                };
 
-                (*lol).worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
+
+                eye_position *= -1.0;
+                let camera_postion = Mat4::identity().translated(&eye_position);
+
+                let camera_rotation = Mat4::from_euler_angles(cam_rot_z * -1.0, cam_rot_x * -1.0, cam_rot_y * -1.0);
+
+
+                (*lol).worldViewProjection = projection_matrix * (camera_rotation * camera_postion); 
                 (*lol).worldViewProjection.transpose();
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
