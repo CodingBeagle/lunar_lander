@@ -31,5 +31,5 @@ void VS(float3 PosL : POSITION, float4 iColor : COLOR,
     PosH = mul(float4(PosL, 1.0f), worldViewProjection);
 
     // Just pass vertex color into the pixel shader
-    oColor = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    oColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 }

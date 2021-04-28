@@ -61,7 +61,11 @@ enum KeyType {
     W = 0x57,
     S = 0x53,
     A = 0x41,
-    D = 0x44
+    D = 0x44,
+    Up = VK_UP as isize,
+    Down = VK_DOWN as isize,
+    Left = VK_LEFT as isize,
+    Right = VK_RIGHT as isize
 }
 
 #[derive(Debug)]
@@ -593,8 +597,12 @@ fn main() {
     immediate_device_context.as_ref().unwrap().RSSetViewports(1, &viewport);
 
     // Set shader buffers
+    // From what I can gather, it ultimatley matters that the vertices are delivered to the Rasterizer stage in a 
+    // left handed, y up, coordinate space, as the DirectX documentation states that vertices coming into the rasterizer stage
+    // are assumed X axis pointing right, Y pointing up, and Z pointing away from the camera, that is, Z is positive when going "into" the screen.
+    // https://docs.microsoft.com/en-us/windows/win32/direct3d11/d3d10-graphics-programming-guide-rasterizer-stage
     let fov_in_degrees: f32 = 45.0;
-    let projection_matrix = perspective_infinite_z_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0);
+    let projection_matrix = perspective_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0, 1.0);
 
     let mut eye_position = Vec3 {
         x: 0.0,
@@ -653,12 +661,12 @@ fn main() {
         let mut current_message = MSG::default();
 
         let mut cam_x = 0.0;
-        let mut cam_y = 0.0;
+        let mut cam_y = 10.0;
         let mut cam_z = -15.0;
 
-        let mut cam_rot_x = 0.0;
-        let mut cam_rot_y = 0.0;
-        let mut cam_rot_z = 0.0;
+        let mut cam_rot_x = -30f32.to_radians();
+        let mut cam_rot_y = 0.0f32.to_radians();
+        let mut cam_rot_z = 0f32.to_radians();
 
         while !should_quit {
             // PeekMessage will retrieve messages associated with the main window.
@@ -673,11 +681,35 @@ fn main() {
             } else {
                 // UPDATE
                 if window_helper.is_key_pressed(KeyType::W) {
-                    eye_position.y += 1.0;
+                    cam_z += 0.5;
                 }
 
                 if window_helper.is_key_pressed(KeyType::S) {
-                    eye_position.y -= 1.0;
+                    cam_z -= 0.5;
+                }
+
+                if window_helper.is_key_pressed(KeyType::A) {
+                    cam_x -= 0.5;
+                }
+
+                if window_helper.is_key_pressed(KeyType::D) {
+                    cam_x += 0.5;
+                }
+
+                if window_helper.is_key_pressed(KeyType::Up) {
+                    cam_rot_x += 0.02;
+                }
+
+                if window_helper.is_key_pressed(KeyType::Down) {
+                    cam_rot_x -= 0.02;
+                }
+
+                if window_helper.is_key_pressed(KeyType::Left) {
+                    cam_rot_y -= 0.02;
+                }
+
+                if window_helper.is_key_pressed(KeyType::Right) {
+                    cam_rot_y += 0.02;
                 }
 
                 if window_helper.was_mouse_pressed(MouseKey::Left) {
@@ -687,11 +719,6 @@ fn main() {
                 if window_helper.is_mouse_down(MouseKey::Left) {
                     println!("Mouse is down!!");
                 }
-
-                // cam_rot_y += 0.01;
-                // cam_rot_x = -10.0;
-
-                world_view_matrix.worldViewProjection = projection_matrix * Mat4::look_at_lh(eye_position, Vec3::default(), Vec3::unit_y());
 
                 // Update vertex constant buffer for world matrix
                 let mut mapped_resource : D3D11_MAPPED_SUBRESOURCE = D3D11_MAPPED_SUBRESOURCE::default();
@@ -716,10 +743,10 @@ fn main() {
                 eye_position *= -1.0;
                 let camera_postion = Mat4::identity().translated(&eye_position);
 
-                let camera_rotation = Mat4::from_euler_angles(cam_rot_z * -1.0, cam_rot_x * -1.0, cam_rot_y * -1.0);
+                let camera_rotation = Mat4::from_rotation_x(cam_rot_x) * Mat4::from_rotation_y(cam_rot_y) * Mat4::from_rotation_z(cam_rot_z);
 
 
-                (*lol).worldViewProjection = projection_matrix * (camera_rotation * camera_postion); 
+                (*lol).worldViewProjection = perspective_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0, 1.0) *  (camera_rotation * camera_postion); 
                 (*lol).worldViewProjection.transpose();
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
