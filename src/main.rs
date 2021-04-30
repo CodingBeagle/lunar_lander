@@ -6,6 +6,7 @@ use std::os::windows::prelude::*;
 
 extern crate winapi;
 
+use obj_loader::Vertex;
 // winapi related imports
 use winapi::ctypes::*;
 use winapi::{Interface, um::libloaderapi::*};
@@ -41,12 +42,6 @@ use image::{ImageResult, DynamicImage, io::Reader};
 extern crate num;
 #[macro_use]
 extern crate num_derive;
-
-#[repr(C)]
-struct Vertex {
-    position: Vec3,
-    color: Vec4
-}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -421,7 +416,7 @@ fn main() {
         // Load texture
         let current_executable_path = env::current_exe().unwrap();
 
-        let path_to_texture = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\crate\\crate_red.png");
+        let path_to_texture = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\crate\\crate_texture.png");
 
         let crate_texture = Reader::open(path_to_texture).expect("Failed to open texture file!").decode().expect("Failed to decode image.");
 
@@ -480,23 +475,10 @@ fn main() {
 
         let loaded_model_data = obj_loader::load_obj(path_to_cone_model);
 
-        let mut triangle_vertex_buffer : Vec<Vertex> = Vec::new();
-
-        if loaded_model_data.vertices.len() % 3 != 0 {
-            panic!("The amount of vertices is not divisible by 3!");
-        }
-
-        for n in (0..loaded_model_data.vertices.len()).step_by(3) {
-            triangle_vertex_buffer.push(Vertex {
-                position: Vec3::new(loaded_model_data.vertices[n], loaded_model_data.vertices[n+1], loaded_model_data.vertices[n+2]),
-                color: Vec4::new(0.5, 0.5, 0.5, 1.0)
-            });
-        }
-
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_buffer_desc 
         // D3D11_BUFFER_DESC is used to describe the buffer we want to upload
         let vertex_buffer_description = D3D11_BUFFER_DESC {
-            ByteWidth: (mem::size_of::<Vertex>() * triangle_vertex_buffer.len()) as UINT, // Size of the buffer in bytes
+            ByteWidth: (mem::size_of::<Vertex>() * loaded_model_data.vertices.len()) as UINT, // Size of the buffer in bytes
             Usage: D3D11_USAGE_DEFAULT,
             BindFlags: D3D11_BIND_VERTEX_BUFFER,
             CPUAccessFlags: 0,
@@ -507,7 +489,7 @@ fn main() {
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_subresource_data
         // D3D11_SUBRESOURCE_DATA is used to describe the data we want to initialize a buffer with
         let buffer_data_description = D3D11_SUBRESOURCE_DATA {
-            pSysMem: triangle_vertex_buffer.as_ptr() as *const c_void,
+            pSysMem: loaded_model_data.vertices.as_ptr() as *const c_void,
             SysMemPitch: 0,
             SysMemSlicePitch: 0
         };
@@ -531,6 +513,7 @@ fn main() {
 
         // TODO: Read up on this whole layout object thing again...
         let semantic_name_position = CString::new("POSITION").unwrap();
+        let semantic_name_uv = CString::new("UV").unwrap();
         let semantic_name_color = CString::new("COLOR").unwrap();
 
         let input_element_descriptions = [
@@ -539,7 +522,16 @@ fn main() {
                 SemanticIndex: 0,
                 Format: DXGI_FORMAT_R32G32B32_FLOAT,
                 InputSlot: 0,
-                AlignedByteOffset: 0,
+                AlignedByteOffset: D3D11_APPEND_ALIGNED_ELEMENT,
+                InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
+                InstanceDataStepRate: 0
+            },
+            D3D11_INPUT_ELEMENT_DESC {
+                SemanticName: semantic_name_uv.as_ptr(),
+                SemanticIndex: 0,
+                Format: DXGI_FORMAT_R32G32_FLOAT,
+                InputSlot: 0,
+                AlignedByteOffset: D3D11_APPEND_ALIGNED_ELEMENT, 
                 InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
                 InstanceDataStepRate: 0
             },
@@ -548,7 +540,7 @@ fn main() {
                 SemanticIndex: 0,
                 Format: DXGI_FORMAT_R32G32B32A32_FLOAT,
                 InputSlot: 0,
-                AlignedByteOffset: 12,
+                AlignedByteOffset: D3D11_APPEND_ALIGNED_ELEMENT,
                 InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
                 InstanceDataStepRate: 0
             }
@@ -563,7 +555,7 @@ fn main() {
         let mut input_layout_object : *mut ID3D11InputLayout = null_mut();
         if FAILED(device_ref.CreateInputLayout(
                 input_element_descriptions.as_ptr(),
-                2,
+                3,
                 compiled_vertex_shader_code.as_ptr() as *const c_void,
                 compiled_vertex_shader_code.len(), 
                 &mut input_layout_object)) {
@@ -632,8 +624,8 @@ fn main() {
         let mut rasterizer_descriptiona = D3D11_RASTERIZER_DESC::default();
         //rasterizer_descriptiona.FillMode = D3D11_FILL_WIREFRAME;
         rasterizer_descriptiona.FillMode = D3D11_FILL_SOLID;
-        rasterizer_descriptiona.CullMode = D3D11_CULL_NONE;
-        rasterizer_descriptiona.FrontCounterClockwise = TRUE;
+        rasterizer_descriptiona.CullMode = D3D11_CULL_BACK;
+        rasterizer_descriptiona.FrontCounterClockwise = FALSE;
 
         // TODO: Setting this to TRUE makes everything invicible... why?
         rasterizer_descriptiona.DepthClipEnable = FALSE;
@@ -813,7 +805,7 @@ fn main() {
                 let camera_rotation = Mat4::from_rotation_x(cam_rot_x) * Mat4::from_rotation_y(cam_rot_y) * Mat4::from_rotation_z(cam_rot_z);
 
 
-                (*lol).worldViewProjection = perspective_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0, 1.0) *  (camera_rotation * camera_postion); 
+                (*lol).worldViewProjection = perspective_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0, 1.0) *  (camera_rotation * camera_postion) * Mat4::from_nonuniform_scale(Vec3::new(6.0, 6.0, 6.0)); 
                 (*lol).worldViewProjection.transpose();
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer

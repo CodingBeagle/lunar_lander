@@ -18,11 +18,12 @@ struct VertexIn
     // :POSITION and :COLOR are parameter semantics which are mapping from the vertex buffer in the
     // pipeline.
     float3 PosL : POSITION;
+    float2 UV : UV;
     float4 Color : COLOR;
 };
 
-void VS(float3 PosL : POSITION, float4 iColor : COLOR, 
-                out float4 PosH : SV_POSITION, out float4 oColor : COLOR)
+void VS(float3 PosL : POSITION, float2 uv: UV,float4 iColor : COLOR, 
+                out float4 PosH : SV_POSITION, out float4 oColor : COLOR, out float2 uvo : UV)
 {
     // Transform to homogenous clip space
     // Notice that the vertex shader, or any other shader, doesn't do the perspective divide.
@@ -32,4 +33,6 @@ void VS(float3 PosL : POSITION, float4 iColor : COLOR,
 
     // Just pass vertex color into the pixel shader
     oColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+
+    uvo = uv;
 }
