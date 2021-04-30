@@ -34,6 +34,9 @@ pub mod obj_loader;
 // Std
 use std::collections::HashMap;
 
+// Image
+use image::{ImageResult, DynamicImage, io::Reader};
+
 // num
 extern crate num;
 #[macro_use]
@@ -62,6 +65,9 @@ enum KeyType {
     S = 0x53,
     A = 0x41,
     D = 0x44,
+    Q = 0x51,
+    Y = 0x59,
+    E = 0x45,
     Up = VK_UP as isize,
     Down = VK_DOWN as isize,
     Left = VK_LEFT as isize,
@@ -412,10 +418,65 @@ fn main() {
         // TODO: Exercise - Enumerate through the available outputs (monitors) for an adapter. Use IDXGIAdapter::EnumOutputs.
         // TODO: Exercise - Each output has a lit of supported display modes. For each of them, list width, height, refresh rate, pixel format, etc...
 
+        // Load texture
+        let current_executable_path = env::current_exe().unwrap();
+
+        let path_to_texture = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\crate\\crate_red.png");
+
+        let crate_texture = Reader::open(path_to_texture).expect("Failed to open texture file!").decode().expect("Failed to decode image.");
+
+        let crate_texture_buffer = crate_texture.as_rgba8().expect("Failed to cast texture to RGBA8 format.");
+
+        let the_dimensions = crate_texture_buffer.dimensions();
+
+        let texture_description = D3D11_TEXTURE2D_DESC {
+            Width: the_dimensions.0,
+            Height: the_dimensions.1,
+            MipLevels: 1,
+            ArraySize: 1,
+            // Gotta read up on this format stuff with UNORM!
+            // https://docs.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-data-conversion
+            Format: DXGI_FORMAT_R8G8B8A8_UNORM,
+            SampleDesc: DXGI_SAMPLE_DESC {
+                Count: 1,
+                Quality: 0
+            },
+            Usage: D3D11_USAGE_DYNAMIC,
+            CPUAccessFlags: D3D11_CPU_ACCESS_WRITE,
+            BindFlags: D3D11_BIND_SHADER_RESOURCE,
+            MiscFlags: 0
+        };
+
+        let initial_texture_data = D3D11_SUBRESOURCE_DATA {
+            pSysMem: crate_texture_buffer.as_raw().as_ptr() as *const c_void,
+            SysMemPitch: 1024 * (mem::size_of::<u8>() as u32 * 4 as u32),
+            SysMemSlicePitch: 0
+        };
+
+        let mut texture_buffer: *mut ID3D11Texture2D = null_mut();
+        let result = device_ref.CreateTexture2D(&texture_description, &initial_texture_data, &mut texture_buffer);
+        if FAILED( result ) {
+            panic!("Failed to create texture!");
+        }
+
+        let mut shader_texture_view = D3D11_SHADER_RESOURCE_VIEW_DESC {
+            Format: DXGI_FORMAT_R8G8B8A8_UNORM,
+            ViewDimension: D3D11_SRV_DIMENSION_TEXTURE2D,
+            u: D3D11_SHADER_RESOURCE_VIEW_DESC_u::default()
+        };
+
+        shader_texture_view.u.Texture2D_mut().MipLevels = 1;
+
+        let mut shader_view_resource : *mut ID3D11ShaderResourceView = null_mut();
+        if FAILED( device_ref.CreateShaderResourceView(texture_buffer as *mut ID3D11Resource, &shader_texture_view, &mut shader_view_resource) ) {
+            panic!("failed to create shader resource view!");
+        }
+
+        immediate_device_context.as_ref().unwrap().PSSetShaderResources(0, 1, &shader_view_resource);
+
         // Create Vertex Buffer and upload it
         // let loaded_model = obj_loader::load_obj();
-        let current_executable_path = env::current_exe().unwrap();
-        let path_to_cone_model = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\lunar_lander\\lunar_lander.obj");
+        let path_to_cone_model = current_executable_path.parent().unwrap().join("resources\\media\\3d_models\\crate\\crate.obj");
 
         let loaded_model_data = obj_loader::load_obj(path_to_cone_model);
 
@@ -569,7 +630,8 @@ fn main() {
         // TODO: Definitely read more up on this...
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_rasterizer_desc
         let mut rasterizer_descriptiona = D3D11_RASTERIZER_DESC::default();
-        rasterizer_descriptiona.FillMode = D3D11_FILL_WIREFRAME;
+        //rasterizer_descriptiona.FillMode = D3D11_FILL_WIREFRAME;
+        rasterizer_descriptiona.FillMode = D3D11_FILL_SOLID;
         rasterizer_descriptiona.CullMode = D3D11_CULL_NONE;
         rasterizer_descriptiona.FrontCounterClockwise = TRUE;
 
@@ -609,9 +671,6 @@ fn main() {
         y: 5.0,
         z: 15.0
      };
-
-    // Create view rotation matrix (inverse of desired camera orientation)
-
 
     // Create view translation matrix (inverse of eye position)
     eye_position *= 1.0;
@@ -694,6 +753,14 @@ fn main() {
 
                 if window_helper.is_key_pressed(KeyType::D) {
                     cam_x += 0.5;
+                }
+
+                if window_helper.is_key_pressed(KeyType::Q) {
+                    cam_y -= 0.3;
+                }
+
+                if window_helper.is_key_pressed(KeyType::E) {
+                    cam_y += 0.3;
                 }
 
                 if window_helper.is_key_pressed(KeyType::Up) {

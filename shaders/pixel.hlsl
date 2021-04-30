@@ -1,5 +1,11 @@
 // fxc.exe /E PS /T ps_5_0 /Fo "compiled-pixel-shader.shader" ./pixel.hlsl
 
+Texture2D <float4> mesh_texture;
+
+SamplerState mySampleState {
+    Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+};
+
 struct VertexOut
 {
     // In the output structure, ":SV_POSITION" and ":COLOR" are also semantics.
@@ -13,5 +19,5 @@ struct VertexOut
 // Pixel shader
 float4 PS(float4 posH : SV_POSITION, float4 color : COLOR) : SV_Target
 {
-    return color;
+    return mesh_texture.Sample(mySampleState, float2(0.5, 0.5));
 }
