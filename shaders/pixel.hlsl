@@ -17,7 +17,9 @@ struct VertexOut
 };
 
 // Pixel shader
-float4 PS(float4 posH : SV_POSITION, float4 color : COLOR, float2 uvo : UV) : SV_Target
+void PS(float4 posH : SV_POSITION, float4 color : COLOR, float2 uvo : UV, out float4 col : SV_TARGET) 
 {
-    return mesh_texture.Sample(mySampleState, uvo);
+    col = mesh_texture.Sample(mySampleState, uvo);
+    //depth = 0.2f;
+    //col = float4(0.5, 0.5, 0.5, 1.0);
 }

@@ -72,9 +72,13 @@ pub fn load_obj(file_path: PathBuf) -> ObjLoaderResult {
                 let the_part = parse_face_element(parts[n]);
 
                 // Does vertex for this combination already exist
-                let haha = format!("{},{}", the_part[0], the_part[1]);
+                let haha = format!("{},{},{}", the_part[0], the_part[1], the_part[2]);
+                // println!("{}", haha);
                 match rofl.get(&haha) {
-                    Some(val) => indices.push(*val as i32),
+                    Some(val) => {
+                        let the_value = *val;
+                        indices.push(the_value as i32)
+                    },
                     None => {
                         vertex_objs.push( Vertex {
                             position: vertices[(the_part[0] - 1) as usize],
@@ -92,6 +96,8 @@ pub fn load_obj(file_path: PathBuf) -> ObjLoaderResult {
             }
         }
     }
+
+    println!("THE COUNT {}", vertex_objs.len());
 
     ObjLoaderResult {
         vertices: vertex_objs,

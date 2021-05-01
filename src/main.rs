@@ -374,7 +374,7 @@ fn main() {
         // TODO: Read up on MipMap levels...
         depth_buffer_texture_description.MipLevels = 1;
 
-        // The number of textures in the texture array.
+        // The number of textures in the texture arrayf
         // We only need one texture for our depth buffer.
         depth_buffer_texture_description.ArraySize = 1;
 
@@ -402,10 +402,29 @@ fn main() {
             return
         }
 
-        if FAILED(device_ref.CreateDepthStencilView(depth_buffer as *mut ID3D11Resource, null_mut(), &mut depth_buffer_view)) {
+        let mut bla = D3D11_DEPTH_STENCIL_VIEW_DESC::default();
+        bla.Format = depth_buffer_texture_description.Format;
+        bla.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+
+        if FAILED(device_ref.CreateDepthStencilView(depth_buffer as *mut ID3D11Resource, &bla, &mut depth_buffer_view)) {
             println!("Failed to create depth view!");
             return
         }
+
+        let mut tihi = D3D11_DEPTH_STENCIL_DESC::default();
+
+        /*
+        tihi.DepthEnable = TRUE;
+        tihi.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        tihi.DepthFunc = D3D11_COMPARISON_LESS;
+
+        let mut wow : *mut ID3D11DepthStencilState = null_mut();
+        if FAILED( device_ref.CreateDepthStencilState(&tihi, &mut wow)) {
+            panic!("Failed to create depth stencil state!");
+        }
+
+        immediate_device_context.as_ref().unwrap().OMSetDepthStencilState(wow, 1);
+        */
 
         // Bind back buffer view and depth buffer view to Output Merger Stage
         immediate_device_context.as_ref().unwrap().OMSetRenderTargets(1, &back_buffer_view, depth_buffer_view);
@@ -626,9 +645,11 @@ fn main() {
         rasterizer_descriptiona.FillMode = D3D11_FILL_SOLID;
         rasterizer_descriptiona.CullMode = D3D11_CULL_BACK;
         rasterizer_descriptiona.FrontCounterClockwise = FALSE;
+        rasterizer_descriptiona.ScissorEnable = FALSE;
 
         // TODO: Setting this to TRUE makes everything invicible... why?
-        rasterizer_descriptiona.DepthClipEnable = FALSE;
+        rasterizer_descriptiona.DepthClipEnable = TRUE;
+        rasterizer_descriptiona.MultisampleEnable = FALSE;
 
         let mut rasterizer_state : *mut ID3D11RasterizerState = null_mut();
         if FAILED(device_ref.CreateRasterizerState(&rasterizer_descriptiona, &mut rasterizer_state)) {
@@ -656,7 +677,7 @@ fn main() {
     // are assumed X axis pointing right, Y pointing up, and Z pointing away from the camera, that is, Z is positive when going "into" the screen.
     // https://docs.microsoft.com/en-us/windows/win32/direct3d11/d3d10-graphics-programming-guide-rasterizer-stage
     let fov_in_degrees: f32 = 45.0;
-    let projection_matrix = perspective_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0, 1.0);
+    let projection_matrix = perspective_infinite_z_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0);
 
     let mut eye_position = Vec3 {
         x: 0.0,
@@ -732,27 +753,27 @@ fn main() {
             } else {
                 // UPDATE
                 if window_helper.is_key_pressed(KeyType::W) {
-                    cam_z += 0.5;
+                    cam_z += 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::S) {
-                    cam_z -= 0.5;
+                    cam_z -= 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::A) {
-                    cam_x -= 0.5;
+                    cam_x -= 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::D) {
-                    cam_x += 0.5;
+                    cam_x += 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::Q) {
-                    cam_y -= 0.3;
+                    cam_y -= 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::E) {
-                    cam_y += 0.3;
+                    cam_y += 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::Up) {
@@ -804,8 +825,7 @@ fn main() {
 
                 let camera_rotation = Mat4::from_rotation_x(cam_rot_x) * Mat4::from_rotation_y(cam_rot_y) * Mat4::from_rotation_z(cam_rot_z);
 
-
-                (*lol).worldViewProjection = perspective_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0, 1.0) *  (camera_rotation * camera_postion) * Mat4::from_nonuniform_scale(Vec3::new(6.0, 6.0, 6.0)); 
+                (*lol).worldViewProjection = perspective_reversed_z_wgpu_dx_gl(fov_in_degrees.to_radians(), 800.0 / 600.0, 1.0, 50.0) *  (camera_rotation * camera_postion); 
                 (*lol).worldViewProjection.transpose();
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
@@ -817,9 +837,13 @@ fn main() {
                 // RENDER
 
                 // Triangle will NOT render unless both ClearRenderTargetView and ClearDpethStencilView is called!
+
+                immediate_device_context.as_ref().unwrap().VSSetShader(vertex_shader_instance, null_mut(), 0);
+                immediate_device_context.as_ref().unwrap().PSSetShader(pixel_shader_instance, null_mut(), 0);
+
                 let clear_color = Vec4::new(0.45, 0.6, 0.95, 1.0);
                 immediate_device_context.as_ref().unwrap().ClearRenderTargetView(back_buffer_view, &clear_color.as_array());
-                immediate_device_context.as_ref().unwrap().ClearDepthStencilView(depth_buffer_view, D3D11_CLEAR_DEPTH, 1.0, 0);
+                immediate_device_context.as_ref().unwrap().ClearDepthStencilView(depth_buffer_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0, 0);
 
                 immediate_device_context.as_ref().unwrap().DrawIndexed(index_buffer_data.len() as UINT, 0, 0);
 
