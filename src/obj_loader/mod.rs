@@ -8,7 +8,7 @@ use std::fs::File;
 // io::prelude is a module that alleviates imports of many common I/O traits
 use std::io::prelude::*;
 
-use ultraviolet::vec::*;
+use glm::*;
 
 #[repr(C)]
 pub struct Vertex {

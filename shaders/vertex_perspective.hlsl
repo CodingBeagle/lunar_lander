@@ -29,7 +29,7 @@ void VS(float3 PosL : POSITION, float2 uv: UV,float4 iColor : COLOR,
     // Notice that the vertex shader, or any other shader, doesn't do the perspective divide.
     // The perspective divide is done by hardware at a later stage.
     // The vertex shader just does the projection matrix.
-    PosH = mul(float4(PosL, 1.0f), worldViewProjection);
+    PosH = mul(worldViewProjection, float4(PosL, 1.0f));
 
     // Just pass vertex color into the pixel shader
     oColor = float4(0.0f, 0.0f, 0.0f, 1.0f);

@@ -1,4 +1,4 @@
-use std::{env, ffi::{CString, OsStr}, fs, iter::once, mem, path::PathBuf, ptr::null_mut};
+use std::{convert::TryInto, env, ffi::{CString, OsStr}, fs, iter::once, mem, path::PathBuf, ptr::null_mut};
 
 // rust-analyzer has an issue with unresolved import errors for platform specific modules such as std::os
 
@@ -20,14 +20,13 @@ use winapi::shared::dxgiformat::*;
 use winapi::shared::dxgitype::*;
 use winapi::shared::windowsx::*;
 
+// Nalgebra
+extern crate nalgebra_glm as glm;
+use glm::*;
+
 // DirectX related imports
 use winapi::um::d3d11::*;
 use winapi::um::d3dcommon::*;
-
-// Ultraviolet
-use ultraviolet::vec::*;
-use ultraviolet::mat::*;
-use ultraviolet::projection::lh_yup::*;
 
 // Own modules
 pub mod obj_loader;
@@ -46,7 +45,7 @@ extern crate num_derive;
 #[derive(Debug)]
 #[repr(C)]
 struct VertexConstantBuffer {
-    worldViewProjection: Mat4
+    worldViewProjection: Mat4 
 }
 
 // TODO: Hot damn... really need to read up on all these fancy traits!
@@ -284,7 +283,7 @@ fn main() {
         // TODO: Read up on difference in Rust between pointers and references, because we cannot call any methods on "device" without first
         // obtaining the reference through as_ref().
         let device_ref = device.as_ref().unwrap();
-
+ 
         // After having created a Device and DeviceContext, the next step is creating a swap chain.
         // A swap chain consists of a front buffer and a back buffer.
         // The back buffer is used to draw / render an entire frame whilst the front buffer is
@@ -677,17 +676,14 @@ fn main() {
     // are assumed X axis pointing right, Y pointing up, and Z pointing away from the camera, that is, Z is positive when going "into" the screen.
     // https://docs.microsoft.com/en-us/windows/win32/direct3d11/d3d10-graphics-programming-guide-rasterizer-stage
     let fov_in_degrees: f32 = 45.0;
-    let projection_matrix = perspective_infinite_z_wgpu_dx(fov_in_degrees.to_radians(), 800.0 / 600.0, 0.0);
+    let projection_matrix = perspective_fov_lh_zo(fov_in_degrees.to_radians(), 800.0, 600.0, 1.0, 100.0);
 
-    let mut eye_position = Vec3 {
-        x: 0.0,
-        y: 5.0,
-        z: 15.0
-     };
+    let mut eye_position = Vec3::new(0.0, 5.0, 15.0);
 
     // Create view translation matrix (inverse of eye position)
     eye_position *= 1.0;
-    let camera_postion = Mat4::identity().translated(&eye_position);
+    let mut camera_postion = glm::Mat4::identity();
+    camera_postion = glm::translate(&camera_postion, &eye_position);
 
      let mut world_view_matrix = VertexConstantBuffer {
         worldViewProjection: projection_matrix * camera_postion
@@ -785,11 +781,11 @@ fn main() {
                 }
 
                 if window_helper.is_key_pressed(KeyType::Left) {
-                    cam_rot_y -= 0.02;
+                    cam_rot_y += 0.02;
                 }
 
                 if window_helper.is_key_pressed(KeyType::Right) {
-                    cam_rot_y += 0.02;
+                    cam_rot_y -= 0.02;
                 }
 
                 if window_helper.was_mouse_pressed(MouseKey::Left) {
@@ -813,20 +809,16 @@ fn main() {
                 };
 
                 let lol : *mut VertexConstantBuffer = mapped_resource.pData as *mut VertexConstantBuffer;
-                let mut eye_position = Vec3 {
-                    x: cam_x,
-                    y: cam_y,
-                    z: cam_z
-                };
+                let mut eye_position = Vec3::new(cam_x, cam_y, cam_z);
 
 
                 eye_position *= -1.0;
-                let camera_postion = Mat4::identity().translated(&eye_position);
+                let camera_postion = translation(&eye_position);
 
-                let camera_rotation = Mat4::from_rotation_x(cam_rot_x) * Mat4::from_rotation_y(cam_rot_y) * Mat4::from_rotation_z(cam_rot_z);
+                let camera_rotation = rotate_x(&Mat4::identity(), cam_rot_x) * rotate_y(&Mat4::identity(), cam_rot_y) * rotate_z(&Mat4::identity(), cam_rot_z);
 
-                (*lol).worldViewProjection = perspective_reversed_z_wgpu_dx_gl(fov_in_degrees.to_radians(), 800.0 / 600.0, 1.0, 50.0) *  (camera_rotation * camera_postion); 
-                (*lol).worldViewProjection.transpose();
+                (*lol).worldViewProjection = perspective_fov_lh_zo(fov_in_degrees.to_radians(), 800.0, 600.0, 0.1, 100.0) *  (camera_rotation * camera_postion); 
+                // (*lol).worldViewProjection.transpose();
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
                 // and reenable the GPU's access to that resource
@@ -842,7 +834,7 @@ fn main() {
                 immediate_device_context.as_ref().unwrap().PSSetShader(pixel_shader_instance, null_mut(), 0);
 
                 let clear_color = Vec4::new(0.45, 0.6, 0.95, 1.0);
-                immediate_device_context.as_ref().unwrap().ClearRenderTargetView(back_buffer_view, &clear_color.as_array());
+                immediate_device_context.as_ref().unwrap().ClearRenderTargetView(back_buffer_view, value_ptr(&clear_color).try_into().expect("Failed to convert clear color arr!"));
                 immediate_device_context.as_ref().unwrap().ClearDepthStencilView(depth_buffer_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0, 0);
 
                 immediate_device_context.as_ref().unwrap().DrawIndexed(index_buffer_data.len() as UINT, 0, 0);
