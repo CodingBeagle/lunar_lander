@@ -1,3 +1,6 @@
+// Mod Decs
+mod beagle_math;
+
 use std::{convert::TryInto, env, ffi::{CString, OsStr}, fs, iter::once, mem, path::PathBuf, ptr::null_mut};
 
 // rust-analyzer has an issue with unresolved import errors for platform specific modules such as std::os
@@ -19,6 +22,9 @@ use winapi::shared::dxgi::*;
 use winapi::shared::dxgiformat::*;
 use winapi::shared::dxgitype::*;
 use winapi::shared::windowsx::*;
+
+// Beagle Math
+use beagle_math::*;
 
 // Nalgebra
 extern crate nalgebra_glm as glm;
@@ -694,7 +700,7 @@ fn main() {
         // However, HLSL uses column-major by default. Meaning, each element of a column will be stored consecutively next to each other.
         // Therefore, I need to tranpose the matrix before passing it to the vertex shader.
         // https://en.wikipedia.org/wiki/Row-_and_column-major_order
-        world_view_matrix.worldViewProjection.transpose();
+        // world_view_matrix.worldViewProjection.transpose();
 
         let vertex_constant_buffer_description = D3D11_BUFFER_DESC {
             ByteWidth: mem::size_of::<VertexConstantBuffer>() as UINT,
