@@ -34,6 +34,61 @@ pub mod beagle_math
             }
         }
 
+        pub fn translate(pos: &Vector3) -> Mat4 {
+            Mat4 {
+                matrix: [
+                    1.0  , 0.0  , 0.0  , pos.x,
+                    0.0  , 1.0  , 0.0  , pos.y,
+                    0.0  , 0.0  , 1.0  , pos.z,
+                    0.0  , 0.0  , 1.0  , 1.0
+                ]
+            }
+        }
+
+        pub fn scale(scale: &Vector3) -> Mat4 {
+            Mat4 {
+                matrix: [
+                    scale.x, 0.0    , 0.0    , 0.0,
+                    0.0    , scale.y, 0.0    , 0.0,
+                    0.0    , 0.0    , scale.z, 0.0,
+                    0.0    , 0.0    , 0.0    , 1.0
+                ]
+            }
+        }
+
+        pub fn rotate_x(rad: f32) -> Mat4 {
+            Mat4 {
+                matrix: [
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, rad.cos(), -rad.sin(), 0.0,
+                    0.0, rad.sin(), rad.cos(), 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                ]
+            }
+        }
+
+        pub fn rotate_y(rad: f32) -> Mat4 {
+            Mat4 {
+                matrix: [
+                    rad.cos(), 0.0, rad.sin(), 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    -rad.sin(), 0.0, rad.cos(), 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                ]
+            }
+        }
+
+        pub fn rotate_z(rad: f32) -> Mat4 {
+            Mat4 {
+                matrix: [
+                    rad.cos(), -rad.sin(), 0.0, 0.0,
+                    rad.sin(), rad.cos(), 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                ]
+            }
+        }
+
         pub fn get_value(&self) -> [f32; 16] {
             self.matrix
         }
@@ -72,7 +127,7 @@ mod tests {
     fn should_return_correct_column_major_matrix_when_getting_column_major_value() {
         // Arrange
         let original_matrix = beagle_math::Mat4::new(
-                                  [11.0, 12.0, 13.0, 14.0,
+                                   [11.0, 12.0, 13.0, 14.0,
                                           21.0, 22.0, 23.0, 24.0,
                                           31.0, 32.0, 33.0, 34.0,
                                           41.0, 42.0, 43.0, 44.0]);
