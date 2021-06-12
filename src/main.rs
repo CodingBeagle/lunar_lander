@@ -48,10 +48,9 @@ extern crate num;
 #[macro_use]
 extern crate num_derive;
 
-#[derive(Debug)]
 #[repr(C)]
 struct VertexConstantBuffer {
-    worldViewProjection: Mat4 
+    worldViewProjection: beagle_math::Mat4 
 }
 
 // TODO: Hot damn... really need to read up on all these fancy traits!
@@ -416,21 +415,6 @@ fn main() {
             return
         }
 
-        let mut tihi = D3D11_DEPTH_STENCIL_DESC::default();
-
-        /*
-        tihi.DepthEnable = TRUE;
-        tihi.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        tihi.DepthFunc = D3D11_COMPARISON_LESS;
-
-        let mut wow : *mut ID3D11DepthStencilState = null_mut();
-        if FAILED( device_ref.CreateDepthStencilState(&tihi, &mut wow)) {
-            panic!("Failed to create depth stencil state!");
-        }
-
-        immediate_device_context.as_ref().unwrap().OMSetDepthStencilState(wow, 1);
-        */
-
         // Bind back buffer view and depth buffer view to Output Merger Stage
         immediate_device_context.as_ref().unwrap().OMSetRenderTargets(1, &back_buffer_view, depth_buffer_view);
 
@@ -681,6 +665,7 @@ fn main() {
     // left handed, y up, coordinate space, as the DirectX documentation states that vertices coming into the rasterizer stage
     // are assumed X axis pointing right, Y pointing up, and Z pointing away from the camera, that is, Z is positive when going "into" the screen.
     // https://docs.microsoft.com/en-us/windows/win32/direct3d11/d3d10-graphics-programming-guide-rasterizer-stage
+    /*
     let fov_in_degrees: f32 = 45.0;
     let projection_matrix = perspective_fov_lh_zo(fov_in_degrees.to_radians(), 800.0, 600.0, 1.0, 100.0);
 
@@ -693,7 +678,7 @@ fn main() {
 
      let mut world_view_matrix = VertexConstantBuffer {
         worldViewProjection: projection_matrix * camera_postion
-     };
+     };*/
 
         // Ultraviolet stores matrices in row-major order.
         // This means that each element of a row is stored consecutively next to each other.
@@ -717,14 +702,15 @@ fn main() {
             StructureByteStride: 0
         };
 
+        /*
         let vertex_constant_buffer_init_data = D3D11_SUBRESOURCE_DATA {
             pSysMem: &world_view_matrix as *const _ as *const c_void,
             SysMemPitch: 0,
             SysMemSlicePitch: 0
-        };
+        };*/
 
         let mut vertex_constant_buffer : *mut ID3D11Buffer = null_mut();
-        if FAILED(device_ref.CreateBuffer(&vertex_constant_buffer_description, &vertex_constant_buffer_init_data, &mut vertex_constant_buffer)) {
+        if FAILED(device_ref.CreateBuffer(&vertex_constant_buffer_description, null_mut(), &mut vertex_constant_buffer)) {
             println!("Failed to create vertex constant buffer!");
             return
         }
@@ -815,16 +801,29 @@ fn main() {
                 };
 
                 let lol : *mut VertexConstantBuffer = mapped_resource.pData as *mut VertexConstantBuffer;
-                let mut eye_position = Vec3::new(cam_x, cam_y, cam_z);
 
+                // let mut eye_position = Vec3::new(cam_x, cam_y, cam_z);
 
-                eye_position *= -1.0;
-                let camera_postion = translation(&eye_position);
+                let mut eye_position = beagle_math::Vector3 {
+                    x: -cam_x,
+                    y: -cam_y,
+                    z: -cam_z 
+                };
 
-                let camera_rotation = rotate_x(&Mat4::identity(), cam_rot_x) * rotate_y(&Mat4::identity(), cam_rot_y) * rotate_z(&Mat4::identity(), cam_rot_z);
+                let camera_postion = beagle_math::Mat4::translate(&eye_position);
+               // let roflmao = beagle_math::Mat4::new(camera_postion.get_column_major_value());
 
-                (*lol).worldViewProjection = perspective_fov_lh_zo(fov_in_degrees.to_radians(), 800.0, 600.0, 0.1, 100.0) *  (camera_rotation * camera_postion); 
-                // (*lol).worldViewProjection.transpose();
+                // let camera_rotation = rotate_x(&Mat4::identity(), cam_rot_x) * rotate_y(&Mat4::identity(), cam_rot_y) * rotate_z(&Mat4::identity(), cam_rot_z);
+
+                // let camera_rotation = beagle_math::Mat4::rotate_x(cam_rot_x) * rotate_y(cam_rot_y) * rotate_z(cam_rot_z);
+
+                // (*lol).worldViewProjection = perspective_fov_lh_zo((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0) *  (camera_rotation * camera_postion); 
+
+                (*lol).worldViewProjection = camera_postion.mul(&beagle_math::Mat4::projection((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0));
+                //(*lol).worldViewProjection.tranpose();
+                //let mut damn = beagle_math::Mat4::projection((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0).mul(&camera_postion);
+                //damn.tranpose();
+                //(*lol).worldViewProjection = damn;
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
                 // and reenable the GPU's access to that resource

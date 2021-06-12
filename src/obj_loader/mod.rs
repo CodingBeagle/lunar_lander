@@ -54,7 +54,7 @@ pub fn load_obj(file_path: PathBuf) -> ObjLoaderResult {
             vertices.push( Vec3::new(
                     parts[1].parse::<f32>().expect("Failed to convert vertice string to number"),
                     parts[2].parse::<f32>().expect("Failed to convert vertice string to number"),
-                    parts[3].parse::<f32>().expect("Failed to convert vertice string to number")));
+                    parts[3].parse::<f32>().expect("Failed to convert vertice string to number")  + 1.0));
          };
         
 

@@ -1,4 +1,5 @@
 // COMPILED OFFLINE USING:  fxc.exe /E VS /T vs_5_0 /Fo "compiled-vertex-shader.shader" ./vertex.hlsl
+#pragma pack_matrix( column_major )
 
 // DirectX shaders are written in the HLSL (high level shading language) language.
 // These are text files saved in the .fx format.
