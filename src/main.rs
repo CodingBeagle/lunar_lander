@@ -820,6 +820,12 @@ fn main() {
 
                 // MY MATH LIBRARY CURRENTLY USES ROW-MAJOR CONVENTION, THIS MEANS THAT YOUR TYPICAL P * V * TRSv order becomes vSRT * VIEW * PROJECTION
                 (*lol).worldViewProjection = camera_postion.mul(&totalt).mul(&beagle_math::Mat4::projection((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0));
+
+                // My matrices are all designed for being multipled with a ROW vector.
+                // Also, I store my matrices in row-major order in memory.
+                // So, I transpose so that DirectX shaders can read my matrices as I intended them.
+                // Another consequence of transposing a matrix in row-major order to column-major order
+                // is that the matrix and vertex multiplication has to switch sides to get the same result.
                 (*lol).worldViewProjection.tranpose();
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
