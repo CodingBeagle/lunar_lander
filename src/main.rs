@@ -721,10 +721,10 @@ fn main() {
         let mut current_message = MSG::default();
 
         let mut cam_x = 0.0;
-        let mut cam_y = 10.0;
-        let mut cam_z = -15.0;
+        let mut cam_y = 0.0;
+        let mut cam_z = 0.0;
 
-        let mut cam_rot_x = -30f32.to_radians();
+        let mut cam_rot_x = 0f32.to_radians();
         let mut cam_rot_y = 0.0f32.to_radians();
         let mut cam_rot_z = 0f32.to_radians();
 
