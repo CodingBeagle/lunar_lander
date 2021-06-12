@@ -15,3 +15,10 @@ Generally, when using graphics APIs, it's important to consider these two proper
 
 - How does the Graphics API work with vector / matrix memory layout in shaders and so forth? Column-Major or Row-Major?
 - How does the Graphics API, or the Math API you use, store vectors and matrices in memory, and which type of translation matrix convention is used?
+
+*NOTICE*
+
+There are two very important concepts that has to be seperated.
+
+- *row-major order* and *column-major order* generally refers to the MEMORY layout of the matrices.
+- Whether you build your transform matrices to be multiplied by a ROW vector or a COLUMN vector is a different matter, but this will decide the order of how you multiply your vertex (vector) to your projection / world / model matrix. For row vectors, it has to be multiplied "in front of" the matrix, for column vectors, it has to be multiplied "after" the matrix.
