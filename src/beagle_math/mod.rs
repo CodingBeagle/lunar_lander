@@ -89,6 +89,23 @@ pub mod beagle_math
             }
         }
 
+        // For this projection matrix, I use what is sometimes referred to as the Hor+ scaling method for Field of View (https://en.wikipedia.org/wiki/Field_of_view_in_video_games).
+        // Basically, the vertical FoV is fixed, while the horizontal FoV scales with the aspect ratio.
+        pub fn projection(fov: f32, width: f32, height: f32, near: f32, far: f32) -> Mat4 {
+            let y_scale = 1.0 / (fov * 0.5).tan();
+            let x_scale = y_scale / (width / height);
+            let q = far / (far - near);
+
+            Mat4 {
+                matrix: [
+                    x_scale, 0.0, 0.0, 0.0,
+                    0.0, y_scale, 0.0, 0.0,
+                    0.0, 0.0, q, 1.0,
+                    0.0, 0.0, -(q * near), 0.0
+                ]
+            }
+        }
+
         pub fn get_value(&self) -> [f32; 16] {
             self.matrix
         }
