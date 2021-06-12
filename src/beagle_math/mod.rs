@@ -110,9 +110,9 @@ impl Mat4
     pub fn translate(pos: &Vector3) -> Mat4 {
         Mat4 {
             matrix: [
-                1.0  , 0.0  , 0.0  , 0.0 ,
-                0.0  , 1.0  , 0.0  , 0.0 ,
-                0.0  , 0.0  , 1.0  , 0.0 ,
+                1.0  , 0.0  , 0.0  , 0.0,
+                0.0  , 1.0  , 0.0  , 0.0,
+                0.0  , 0.0  , 1.0  , 0.0,
                 pos.x  , pos.y  , pos.z , 1.0
             ]
         }
@@ -175,10 +175,10 @@ impl Mat4
 
         Mat4 {
             matrix: [
-                x_scale, 0.0, 0.0, 0.0,
-                0.0, y_scale, 0.0, 0.0,
-                0.0, 0.0, q, 1.0,
-                0.0, 0.0, -q * near, 0.0
+                x_scale, 0.0    , 0.0      , 0.0,
+                0.0    , y_scale, 0.0      , 0.0,
+                0.0    , 0.0    , q        , 1.0,
+                0.0    , 0.0    , -q * near, 0.0
             ]
         }
     }
@@ -240,7 +240,7 @@ mod tests {
 
         let result = mat_a.mul(&&mat_b);
 
-        let mut rofl = Mat4::new([
+        let rofl = Mat4::new([
             5.0, 6.0, 1.0, 2.0,
             3.0, 0.0, 12.0, 2.0,
             48.0, 38.0, 2.0, 9.0,
