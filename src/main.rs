@@ -811,21 +811,16 @@ fn main() {
                 };
 
                 let mut camera_postion = beagle_math::Mat4::translate(&eye_position);
-               // let roflmao = beagle_math::Mat4::new(camera_postion.get_column_major_value());
 
-                // let camera_rotation = rotate_x(&Mat4::identity(), cam_rot_x) * rotate_y(&Mat4::identity(), cam_rot_y) * rotate_z(&Mat4::identity(), cam_rot_z);
+                let rotx = beagle_math::Mat4::rotate_x(cam_rot_x);
+                let roty = beagle_math::Mat4::rotate_y(cam_rot_y);
+                let rotz = beagle_math::Mat4::rotate_z(cam_rot_z);
 
-                // let camera_rotation = beagle_math::Mat4::rotate_x(cam_rot_x) * rotate_y(cam_rot_y) * rotate_z(cam_rot_z);
+                let mut totalt = roty.mul(&rotx);
 
-                // (*lol).worldViewProjection = perspective_fov_lh_zo((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0) *  (camera_rotation * camera_postion); 
-
-                (*lol).worldViewProjection = camera_postion.mul(&beagle_math::Mat4::projection((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0));
+                // MY MATH LIBRARY CURRENTLY USES ROW-MAJOR CONVENTION, THIS MEANS THAT YOUR TYPICAL P * V * TRSv order becomes vSRT * VIEW * PROJECTION
+                (*lol).worldViewProjection = camera_postion.mul(&totalt).mul(&beagle_math::Mat4::projection((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0));
                 (*lol).worldViewProjection.tranpose();
-                //(*lol).worldViewProjection.tranpose();
-                //(*lol).worldViewProjection.tranpose();
-                //let mut damn = beagle_math::Mat4::projection((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0).mul(&camera_postion);
-                //damn.tranpose();
-                //(*lol).worldViewProjection = damn;
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
                 // and reenable the GPU's access to that resource

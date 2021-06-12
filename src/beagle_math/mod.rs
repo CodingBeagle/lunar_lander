@@ -133,8 +133,8 @@ impl Mat4
         Mat4 {
             matrix: [
                 1.0, 0.0, 0.0, 0.0,
-                0.0, rad.cos(), -rad.sin(), 0.0,
-                0.0, rad.sin(), rad.cos(), 0.0,
+                0.0, rad.cos(), rad.sin(), 0.0,
+                0.0, -rad.sin(), rad.cos(), 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]
         }
@@ -143,10 +143,10 @@ impl Mat4
     pub fn rotate_y(rad: f32) -> Mat4 {
         Mat4 {
             matrix: [
-                rad.cos(), 0.0, rad.sin(), 0.0,
-                0.0, 1.0, 0.0, 0.0,
-                -rad.sin(), 0.0, rad.cos(), 0.0,
-                0.0, 0.0, 0.0, 1.0
+                rad.cos() , 0.0 , -rad.sin() , 0.0,
+                0.0       , 1.0 , 0.0       , 0.0,
+                rad.sin(), 0.0 , rad.cos() , 0.0,
+                0.0       , 0.0 , 0.0       , 1.0
             ]
         }
     }
