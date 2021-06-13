@@ -802,8 +802,6 @@ fn main() {
 
                 let lol : *mut VertexConstantBuffer = mapped_resource.pData as *mut VertexConstantBuffer;
 
-                // let mut eye_position = Vec3::new(cam_x, cam_y, cam_z);
-
                 let mut eye_position = beagle_math::Vector3 {
                     x: -cam_x,
                     y: -cam_y,
@@ -823,9 +821,8 @@ fn main() {
 
                 // My matrices are all designed for being multipled with a ROW vector.
                 // Also, I store my matrices in row-major order in memory.
-                // So, I transpose so that DirectX shaders can read my matrices as I intended them.
-                // Another consequence of transposing a matrix in row-major order to column-major order
-                // is that the matrix and vertex multiplication has to switch sides to get the same result.
+                // By default, HLSL will both READ and PACK matrices in column-major. 
+                // So I transpose my matrix so that it will be read correctly as a ROW MAJOR matrix on the shader side.
                 (*lol).worldViewProjection.tranpose();
 
                 // After we're done mapping new data, we have to call Unmap in order to invalidate the pointer to the buffer
