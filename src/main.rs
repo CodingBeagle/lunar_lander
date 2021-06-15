@@ -754,11 +754,11 @@ fn main() {
                 }
 
                 if window_helper.is_key_pressed(KeyType::Q) {
-                    cam_y -= 0.2;
+                    cam_y += 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::E) {
-                    cam_y += 0.2;
+                    cam_y -= 0.2;
                 }
 
                 if window_helper.is_key_pressed(KeyType::Up) {
