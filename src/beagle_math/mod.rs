@@ -1,6 +1,35 @@
-use std::fmt::{self, write};
-use winapi::um::winnt::VerSetConditionMask;
+use std::fmt::{self};
 
+// The "marker" module contains primitive traits and types representing basic properties of types.
+// Need the trait "Copy"
+use std::marker::{Copy};
+
+#[derive(Default, Clone, Copy)]
+pub struct Vector2
+{
+    pub x: f32,
+    pub y: f32
+}
+
+impl fmt::Debug for Vector2 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Vector2")
+        .field("x", &self.x)
+        .field("y", &self.y)
+        .finish()
+    }
+}
+
+impl Vector2 {
+    pub fn new(x: f32, y: f32) -> Vector2 {
+        Vector2 {
+            x,
+            y
+        }
+    }
+}
+
+#[derive(Default, Clone, Copy)]
 pub struct Vector3
 {
     pub x: f32,
@@ -32,6 +61,7 @@ impl Vector3 {
     }
 }
 
+#[derive(Default, Clone, Copy)]
 pub struct Vector4 {
     pub x: f32,
     pub y: f32,
@@ -62,6 +92,10 @@ impl Vector4 {
 
     pub fn dot(&self, vec: &Vector4) -> f32 {
         self.x * vec.x + self.y * vec.y + self.z * vec.z + self.w * vec.w
+    }
+
+    pub fn as_array(&self) -> [f32; 4] {
+        [self.x, self.y, self.z, self.w]
     }
 }
 

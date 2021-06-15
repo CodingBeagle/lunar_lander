@@ -6,15 +6,15 @@ use std::io::*;
 use std::fs::File;
 
 // io::prelude is a module that alleviates imports of many common I/O traits
-use std::io::prelude::*;
+// use std::io::prelude::*;
 
-use glm::*;
-
+use crate::beagle_math::{self};
+    
 #[repr(C)]
 pub struct Vertex {
-    pub position: Vec3,
-    pub uv: Vec2,
-    pub color: Vec4
+    pub position: beagle_math::Vector3,
+    pub uv: beagle_math::Vector2,
+    pub color: beagle_math::Vector4
 }
 
 #[derive(Default)]
@@ -35,8 +35,8 @@ pub fn load_obj(file_path: PathBuf) -> ObjLoaderResult {
     // Lastly, I get an iterator to all lines in the file.
     let lines = buff_read.lines();
 
-    let mut vertices : Vec<Vec3> = Vec::new();
-    let mut uv : Vec<Vec2> = Vec::new();
+    let mut vertices : Vec<beagle_math::Vector3> = Vec::new();
+    let mut uv : Vec<beagle_math::Vector2> = Vec::new();
     let mut indices : Vec<i32> = Vec::new();
 
     let mut vertex_objs : Vec<Vertex> = Vec::new();
@@ -51,7 +51,7 @@ pub fn load_obj(file_path: PathBuf) -> ObjLoaderResult {
 
         // Starting with "v", we got a vertex line
         if parts[0] == "v" {
-            vertices.push( Vec3::new(
+            vertices.push( beagle_math::Vector3::new(
                     parts[1].parse::<f32>().expect("Failed to convert vertice string to number"),
                     parts[2].parse::<f32>().expect("Failed to convert vertice string to number"),
                     parts[3].parse::<f32>().expect("Failed to convert vertice string to number")  + 1.0));
@@ -60,7 +60,7 @@ pub fn load_obj(file_path: PathBuf) -> ObjLoaderResult {
 
         // Starting with "vt" we got a texture coordinate
         if parts[0] == "vt" {
-            uv.push(Vec2::new(
+            uv.push(beagle_math::Vector2::new(
                     parts[1].parse::<f32>().expect("Failed to convert UV u coordinate."),
                     parts[2].parse::<f32>().expect("Failed to convert UV v coordinate.")));
         }
@@ -83,7 +83,7 @@ pub fn load_obj(file_path: PathBuf) -> ObjLoaderResult {
                         vertex_objs.push( Vertex {
                             position: vertices[(the_part[0] - 1) as usize],
                             uv: uv[(the_part[1] - 1) as usize],
-                            color: Vec4::default()
+                            color: beagle_math::Vector4::default()
                          });
 
                         let new_index = vertex_objs.len() - 1;

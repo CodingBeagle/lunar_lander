@@ -1,7 +1,7 @@
 // Mod Decs
 mod beagle_math;
 
-use std::{convert::TryInto, env, ffi::{CString, OsStr}, fs, iter::once, mem, path::PathBuf, ptr::null_mut};
+use std::{env, ffi::{CString, OsStr}, fs, iter::once, mem, path::PathBuf, ptr::null_mut};
 
 // rust-analyzer has an issue with unresolved import errors for platform specific modules such as std::os
 
@@ -10,6 +10,7 @@ use std::os::windows::prelude::*;
 extern crate winapi;
 
 use obj_loader::Vertex;
+
 // winapi related imports
 use winapi::ctypes::*;
 use winapi::{Interface, um::libloaderapi::*};
@@ -25,10 +26,6 @@ use winapi::shared::windowsx::*;
 
 // Beagle Math
 use beagle_math::*;
-
-// Nalgebra
-extern crate nalgebra_glm as glm;
-use glm::*;
 
 // DirectX related imports
 use winapi::um::d3d11::*;
@@ -99,7 +96,7 @@ struct Window {
     previous_keyboard_state: HashMap<KeyType, bool>,
     current_mouse_key_state: HashMap<MouseKey, KeyState>,
     previous_mouse_key_state: HashMap<MouseKey, KeyState>,
-    mouse_coords: Vec2
+    mouse_coords: beagle_math::Vector2
 }
 
 impl Window {
@@ -838,8 +835,8 @@ fn main() {
                 immediate_device_context.as_ref().unwrap().VSSetShader(vertex_shader_instance, null_mut(), 0);
                 immediate_device_context.as_ref().unwrap().PSSetShader(pixel_shader_instance, null_mut(), 0);
 
-                let clear_color = Vec4::new(0.45, 0.6, 0.95, 1.0);
-                immediate_device_context.as_ref().unwrap().ClearRenderTargetView(back_buffer_view, value_ptr(&clear_color).try_into().expect("Failed to convert clear color arr!"));
+                let clear_color = beagle_math::Vector4::new(0.45, 0.6, 0.95, 1.0);
+                immediate_device_context.as_ref().unwrap().ClearRenderTargetView(back_buffer_view, &clear_color.as_array());
                 immediate_device_context.as_ref().unwrap().ClearDepthStencilView(depth_buffer_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0, 0);
 
                 immediate_device_context.as_ref().unwrap().DrawIndexed(index_buffer_data.len() as UINT, 0, 0);
