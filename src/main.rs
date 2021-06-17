@@ -811,7 +811,10 @@ fn main() {
                 let roty = beagle_math::Mat4::rotate_y(cam_rot_y);
                 let rotz = beagle_math::Mat4::rotate_z(cam_rot_z);
 
-                let mut totalt = roty.mul(&rotx);
+                // let mut totalt = roty.mul(&rotx);
+                let totalt = beagle_math::Quaternion::Rotation(Vector3::new(0.0, 0.0, 1.0), cam_rot_z)
+                .mul( &beagle_math::Quaternion::Rotation(Vector3::new(0.0, 1.0, 0.0), cam_rot_y))
+                .mul(&beagle_math::Quaternion::Rotation(Vector3::new(1.0, 0.0, 0.0), cam_rot_x));
 
                 // MY MATH LIBRARY CURRENTLY USES ROW-MAJOR CONVENTION, THIS MEANS THAT YOUR TYPICAL P * V * TRSv order becomes vSRT * VIEW * PROJECTION
                 (*lol).worldViewProjection = camera_postion.mul(&totalt).mul(&beagle_math::Mat4::projection((45.0f32).to_radians(), 800.0, 600.0, 0.1, 100.0));

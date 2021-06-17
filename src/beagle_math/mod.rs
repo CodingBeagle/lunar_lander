@@ -4,6 +4,8 @@ use std::fmt::{self};
 // Need the trait "Copy"
 use std::marker::{Copy};
 
+use num_traits::Pow;
+
 #[derive(Default, Clone, Copy)]
 pub struct Vector2
 {
@@ -92,6 +94,14 @@ impl Vector4 {
 
     pub fn dot(&self, vec: &Vector4) -> f32 {
         self.x * vec.x + self.y * vec.y + self.z * vec.z + self.w * vec.w
+    }
+
+    pub fn magnitude(&self) -> f32 {
+        ( self.x.powf(2.0) + self.y.powf(2.0) + self.z.powf(2.0) + self.w.powf(2.0) ).sqrt()
+    }
+
+    pub fn normalize(&self) -> Vector4 {
+        Vector4::new( self.x / self.magnitude(), self.y / self.magnitude(), self.z / self.magnitude(), self.w / self.magnitude() )
     }
 
     pub fn as_array(&self) -> [f32; 4] {
@@ -252,6 +262,54 @@ impl Mat4
     }
 }
 
+pub struct Quaternion {
+    quat: Vector4
+}
+
+impl Quaternion {
+    pub fn Rotation(axis: Vector3, angle_in_radians: f32) -> Mat4 {
+        let angle = angle_in_radians / 2.0;
+
+        let mut q = Vector4::new(
+            angle.sin() * axis.x,
+            angle.sin() * axis.y,
+            angle.sin() * axis.z,
+            angle.cos()
+        );
+
+        q = q.normalize();
+
+        let m11 = 1.0 - 2.0 * q.y.powf(2.0) - 2.0 * q.z.powf(2.0);
+        let m12 = 2.0 * q.x * q.y + 2.0 * q.z * q.w;
+        let m13 = 2.0 * q.x * q.z - 2.0 * q.y * q.w;
+        let m14 = 0.0;
+
+        let m21 = 2.0 * q.x * q.y - 2.0 * q.z * q.w;
+        let m22 = 1.0 - 2.0 * q.x.powf(2.0) - 2.0 * q.z.powf(2.0);
+        let m23 = 2.0 * q.y * q.z + 2.0 * q.x * q.w;
+        let m24 = 0.0;
+
+        let m31 = 2.0 * q.x * q.z + 2.0 * q.y * q.w;
+        let m32 = 2.0 * q.y * q.z - 2.0 * q.x * q.w;
+        let m33 = 1.0 - 2.0 * q.x.powf(2.0) - 2.0 * q.y.powf(2.0);
+        let m34 = 0.0;
+
+        let m41 = 0.0;
+        let m42 = 0.0;
+        let m43 = 0.0;
+        let m44 = 1.0;
+
+        let m = Mat4::new([
+            m11, m12, m13, m14,
+            m21, m22, m23, m24,
+            m31, m32, m33, m34,
+            m41, m42, m43, m44
+        ]);
+
+        m
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::beagle_math::*;
@@ -274,7 +332,7 @@ mod tests {
 
         let result = mat_a.mul(&&mat_b);
 
-        let rofl = Mat4::new([
+        let mut rofl = Mat4::new([
             5.0, 6.0, 1.0, 2.0,
             3.0, 0.0, 12.0, 2.0,
             48.0, 38.0, 2.0, 9.0,
@@ -329,5 +387,18 @@ mod tests {
 
         // Assert
         assert!( matrix_in_column_major.iter().eq(expected_matrix.iter()) );
+    }
+
+    #[test]
+    fn should_calculate_magnitude_correctly() {
+        let my_vector = Vector4::new(2.0, 4.0, 7.0, 8.0);
+
+        let magnitude = my_vector.magnitude();
+
+        println!("magnitude: {}", magnitude);
+
+        let normalized = my_vector.normalize();
+
+        println!("normalized: {:?}", normalized);
     }
 }
